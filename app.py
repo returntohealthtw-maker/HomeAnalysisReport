@@ -751,9 +751,10 @@ def status(job_id: str):
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
+    is_dev = os.getenv("FLASK_ENV", "production") == "development"
     print("\n[OK] Family Brainwave Report System started")
     print(f"     Open browser:  http://localhost:{port}")
     print(f"     Test API key:  http://localhost:{port}/api-test\n")
     if not key_is_set():
         print("[WARN] GEMINI_API_KEY not set. Get a free key at: https://aistudio.google.com/apikey\n")
-    app.run(debug=True, port=port, threaded=True)
+    app.run(debug=is_dev, port=port, threaded=True)
