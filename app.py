@@ -369,22 +369,30 @@ def generate_section_text(
 
 
 def generate_section_image(section_title: str, chapter_title: str, text_preview: str, job_id: str, key: str):
-    """Generate illustration via Gemini Nano Banana and save locally. Returns local URL path or None."""
-    prompt = f"""Create a warm, healing therapeutic illustration for an East Asian family psychology report.
+    """Generate illustration via Gemini image model and save locally. Returns local URL path or None."""
+    prompt = f"""Create an ultra-premium 3D rendered illustration for a luxury East Asian family psychology wellness report.
 
-Section: "{section_title}" | Chapter: "{chapter_title}"
+Theme: "{section_title}" — Chapter: "{chapter_title}"
+Emotional core: {text_preview[:150]}
 
-Visual direction:
-- Style: Delicate East Asian watercolor (水彩) with soft ink wash (水墨) accents
-- Color palette: Warm sage green, golden amber, soft terracotta, warm cream — natural, healing tones only
-- Botanical elements: Gentle leaves, bamboo shoots, cherry blossom branches, or soft ferns
-- Human elements: Abstract, soft silhouettes of adult and child figures (NO detailed faces) suggesting warmth and connection
-- Mood: Safe, nurturing, hopeful — like a gentle embrace between parent and child
-- NO text, NO words, NO numbers, NO labels anywhere in the image
-- Composition: Wide horizontal landscape orientation (16:9)
-- Emotional essence: {text_preview[:120]}
+RENDERING STYLE — must follow exactly:
+- Render quality: Photorealistic 3D CGI, cinema-grade rendering (think Pixar / DreamWorks quality background art)
+- Lighting: Soft volumetric cinematic lighting — warm golden-hour key light from upper left, subtle cool ambient fill, delicate caustic highlights
+- Depth of field: Gentle background blur (bokeh), crisp midground, dreamlike soft foreground elements
+- Materials: Translucent jade, polished celadon ceramic, soft-glow frosted glass, silk fabric with micro-detail sheen, living moss with subsurface scattering
+- Color palette: Warm sage green (#5B7B5B), deep celadon, gold leaf accents (#C4923A), soft cream (#FAF7F2), misty lavender-grey shadows
 
-This illustration belongs to a professional family therapy psychological report. Make it elegant, healing, and deeply East Asian in aesthetic."""
+COMPOSITION:
+- Format: Horizontal 16:9, cinematic crop
+- Foreground: Exquisite botanical details — translucent leaves with visible veining, dewdrops with light refraction, unfurling fern fronds
+- Midground: Abstract soft-glow sculptural forms — flowing ribbons of light suggesting invisible bonds between parent and child figures (silhouette-only, NO faces, NO text)
+- Background: Soft misty atmosphere with floating luminous particles, subtle gradient from warm to cool
+
+MANDATORY RULES:
+- NO text, NO numbers, NO letters, NO labels anywhere
+- NO realistic human faces — only abstract sculptural silhouettes or flowing fabric shapes
+- The mood must feel: safe, elevated, deeply healing, quietly luxurious
+- Professional enough to appear in a premium $500 printed psychological wellness report"""
 
     try:
         response = get_client().models.generate_content(
