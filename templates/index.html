@@ -1298,45 +1298,64 @@ function hideProgress() {
 }
 
 function trackProgress(jobId) {
-  const es = new EventSource('/stream/' + jobId);
   let chaptersInited = false;
+  let retryCount = 0;
+  const MAX_RETRIES = 10;
+  let es = null;
 
-  es.onmessage = function(e) {
-    const d = JSON.parse(e.data);
-    if (d.error) { es.close(); return; }
+  function connect() {
+    if (es) { try { es.close(); } catch(e) {} }
+    es = new EventSource('/stream/' + jobId);
 
-    // Init chapter list
-    if (!chaptersInited && d.chapters_list && d.chapters_list.length) {
-      initChaptersList(d.chapters_list);
-      chaptersInited = true;
-    }
+    es.onmessage = function(e) {
+      retryCount = 0; // reset on successful message
+      let d;
+      try { d = JSON.parse(e.data); } catch(err) { return; }
+      if (d.error) { es.close(); return; }
 
-    const pct = d.progress || 0;
-    const done = d.completed_sections || 0;
-    const total = d.total_sections || 48;
+      if (!chaptersInited && d.chapters_list && d.chapters_list.length) {
+        initChaptersList(d.chapters_list);
+        chaptersInited = true;
+      }
 
-    document.getElementById('prog-bar').style.width = pct + '%';
-    document.getElementById('prog-pct').textContent = pct + '%';
-    document.getElementById('prog-counts').textContent = `已完成 ${done} / ${total} 節`;
-    document.getElementById('prog-current').textContent = d.current_section || '準備中...';
+      const pct  = d.progress || 0;
+      const done = d.completed_sections || 0;
+      const total = d.total_sections || 48;
 
-    // Update chapter dots
-    if (d.chapters_list) {
-      updateChapterList(d.chapters_list, d.current_chapter, done, total);
-    }
+      document.getElementById('prog-bar').style.width = pct + '%';
+      document.getElementById('prog-pct').textContent = pct + '%';
+      document.getElementById('prog-counts').textContent = `已完成 ${done} / ${total} 節`;
+      document.getElementById('prog-current').textContent = d.current_section || '準備中...';
 
-    if (d.status === 'completed') {
+      if (d.chapters_list) {
+        updateChapterList(d.chapters_list, d.current_chapter, done, total);
+      }
+
+      if (d.status === 'completed') {
+        es.close();
+        document.getElementById('prog-subtitle').textContent = '報告生成完成！正在跳轉...';
+        setTimeout(() => { window.location.href = '/report/' + jobId; }, 1200);
+      }
+    };
+
+    es.onerror = function() {
       es.close();
-      document.getElementById('prog-subtitle').textContent = '報告生成完成！正在跳轉...';
-      setTimeout(() => { window.location.href = '/report/' + jobId; }, 1200);
-    }
-  };
+      retryCount++;
+      if (retryCount <= MAX_RETRIES) {
+        // Exponential back-off: 2s, 4s, 8s ... up to 30s
+        const delay = Math.min(2000 * Math.pow(1.5, retryCount - 1), 30000);
+        document.getElementById('prog-current').textContent =
+          `連線中斷，${Math.round(delay/1000)} 秒後重試（第 ${retryCount}/${MAX_RETRIES} 次）...`;
+        setTimeout(connect, delay);
+      } else {
+        // Give up SSE, fall back to polling
+        document.getElementById('prog-current').textContent = '切換為輪詢模式...';
+        setTimeout(() => pollStatus(jobId), 3000);
+      }
+    };
+  }
 
-  es.onerror = function() {
-    es.close();
-    // Poll fallback
-    setTimeout(() => pollStatus(jobId), 3000);
-  };
+  connect();
 }
 
 function pollStatus(jobId) {

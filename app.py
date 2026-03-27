@@ -757,4 +757,5 @@ if __name__ == "__main__":
     print(f"     Test API key:  http://localhost:{port}/api-test\n")
     if not key_is_set():
         print("[WARN] GEMINI_API_KEY not set. Get a free key at: https://aistudio.google.com/apikey\n")
-    app.run(debug=is_dev, port=port, threaded=True)
+    # Disable reloader to prevent mid-generation server restarts clearing in-memory jobs
+    app.run(debug=is_dev, port=port, threaded=True, use_reloader=False)
