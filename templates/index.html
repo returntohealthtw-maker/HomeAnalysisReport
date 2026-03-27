@@ -219,7 +219,8 @@ body{
 .upload-zone:hover{border-color:var(--green-l);background:var(--green-xl)}
 .upload-zone.dragover{border-color:var(--green);background:var(--green-xl);transform:scale(1.01)}
 .upload-zone input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;}
-.upload-icon{font-size:1.8rem;margin-bottom:8px;opacity:.6}
+.upload-icon{width:44px;height:44px;margin:0 auto 10px;opacity:.55;display:block}
+.upload-icon svg{width:100%;height:100%}
 .upload-text{font-size:.78rem;color:var(--text-3);line-height:1.6}
 .upload-text strong{color:var(--green-l);display:block;font-size:.82rem;margin-bottom:2px}
 
@@ -304,7 +305,8 @@ body{
   border:1px solid rgba(255,255,255,.3);
   pointer-events:none;
 }
-.reupload-icon{font-size:1.4rem;pointer-events:none}
+.reupload-icon{width:28px;height:28px;display:block;margin:0 auto 4px;pointer-events:none}
+.reupload-icon svg{width:100%;height:100%}
 
 /* Success info bar */
 .success-info-bar{
@@ -739,7 +741,7 @@ body{
       <input type="text" class="name-input" id="name-father" placeholder="請輸入姓名（選填）" maxlength="20">
       <label class="upload-zone" id="zone-father" ondragover="handleDragOver(event,'father')" ondragleave="handleDragLeave(event,'father')" ondrop="handleDrop(event,'father')">
         <input type="file" id="file-father" accept="image/*" onchange="handleFileSelect(event,'father')">
-        <div class="upload-icon">📊</div>
+        <div class="upload-icon"><svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28c2-4 4-6 6-4s3 6 5 6 3-8 5-8 3 4 5 4 3-6 5-4 4 6 5 6" stroke="#5B7B5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="36" width="40" height="2" rx="1" fill="#C4923A" opacity=".4"/><circle cx="22" cy="14" r="6" stroke="#5B7B5B" stroke-width="2" fill="none"/><path d="M18 14c0-2 1.5-4 4-4s4 2 4 4" stroke="#C4923A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
         <div class="upload-text"><strong>點擊上傳或拖放圖片</strong>爸爸的腦波量測報告截圖</div>
       </label>
       <div class="processing-indicator" id="proc-father">
@@ -752,7 +754,7 @@ body{
           <div class="success-check-badge">✓</div>
           <label class="success-reupload">
             <input type="file" id="file-reup-father" accept="image/*" onchange="handleFileSelect(event,'father')">
-            <div class="reupload-icon">🔄</div>
+            <div class="reupload-icon"><svg viewBox="0 0 28 28" fill="none"><path d="M5 14A9 9 0 0 1 23 14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 10l4 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="reupload-label">重新上傳</div>
           </label>
         </div>
@@ -781,7 +783,7 @@ body{
       <input type="text" class="name-input" id="name-mother" placeholder="請輸入姓名（選填）" maxlength="20">
       <label class="upload-zone" id="zone-mother" ondragover="handleDragOver(event,'mother')" ondragleave="handleDragLeave(event,'mother')" ondrop="handleDrop(event,'mother')">
         <input type="file" id="file-mother" accept="image/*" onchange="handleFileSelect(event,'mother')">
-        <div class="upload-icon">📊</div>
+        <div class="upload-icon"><svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28c2-4 4-6 6-4s3 6 5 6 3-8 5-8 3 4 5 4 3-6 5-4 4 6 5 6" stroke="#5B7B5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="36" width="40" height="2" rx="1" fill="#C4923A" opacity=".4"/><circle cx="22" cy="14" r="6" stroke="#5B7B5B" stroke-width="2" fill="none"/><path d="M18 14c0-2 1.5-4 4-4s4 2 4 4" stroke="#C4923A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
         <div class="upload-text"><strong>點擊上傳或拖放圖片</strong>媽媽的腦波量測報告截圖</div>
       </label>
       <div class="processing-indicator" id="proc-mother">
@@ -794,7 +796,7 @@ body{
           <div class="success-check-badge">✓</div>
           <label class="success-reupload">
             <input type="file" id="file-reup-mother" accept="image/*" onchange="handleFileSelect(event,'mother')">
-            <div class="reupload-icon">🔄</div>
+            <div class="reupload-icon"><svg viewBox="0 0 28 28" fill="none"><path d="M5 14A9 9 0 0 1 23 14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 10l4 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="reupload-label">重新上傳</div>
           </label>
         </div>
@@ -823,7 +825,7 @@ body{
       <input type="text" class="name-input" id="name-child1" placeholder="請輸入姓名（選填）" maxlength="20">
       <label class="upload-zone" id="zone-child1" ondragover="handleDragOver(event,'child1')" ondragleave="handleDragLeave(event,'child1')" ondrop="handleDrop(event,'child1')">
         <input type="file" id="file-child1" accept="image/*" onchange="handleFileSelect(event,'child1')">
-        <div class="upload-icon">📊</div>
+        <div class="upload-icon"><svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28c2-4 4-6 6-4s3 6 5 6 3-8 5-8 3 4 5 4 3-6 5-4 4 6 5 6" stroke="#5B7B5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="36" width="40" height="2" rx="1" fill="#C4923A" opacity=".4"/><circle cx="22" cy="14" r="6" stroke="#5B7B5B" stroke-width="2" fill="none"/><path d="M18 14c0-2 1.5-4 4-4s4 2 4 4" stroke="#C4923A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
         <div class="upload-text"><strong>點擊上傳或拖放圖片</strong>孩子1的腦波量測報告截圖</div>
       </label>
       <div class="processing-indicator" id="proc-child1">
@@ -836,7 +838,7 @@ body{
           <div class="success-check-badge">✓</div>
           <label class="success-reupload">
             <input type="file" id="file-reup-child1" accept="image/*" onchange="handleFileSelect(event,'child1')">
-            <div class="reupload-icon">🔄</div>
+            <div class="reupload-icon"><svg viewBox="0 0 28 28" fill="none"><path d="M5 14A9 9 0 0 1 23 14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 10l4 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="reupload-label">重新上傳</div>
           </label>
         </div>
@@ -865,7 +867,7 @@ body{
       <input type="text" class="name-input" id="name-child2" placeholder="請輸入姓名（選填）" maxlength="20">
       <label class="upload-zone" id="zone-child2" style="opacity:.5;pointer-events:none" ondragover="handleDragOver(event,'child2')" ondragleave="handleDragLeave(event,'child2')" ondrop="handleDrop(event,'child2')">
         <input type="file" id="file-child2" accept="image/*" onchange="handleFileSelect(event,'child2')">
-        <div class="upload-icon">📊</div>
+        <div class="upload-icon"><svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28c2-4 4-6 6-4s3 6 5 6 3-8 5-8 3 4 5 4 3-6 5-4 4 6 5 6" stroke="#5B7B5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="36" width="40" height="2" rx="1" fill="#C4923A" opacity=".4"/><circle cx="22" cy="14" r="6" stroke="#5B7B5B" stroke-width="2" fill="none"/><path d="M18 14c0-2 1.5-4 4-4s4 2 4 4" stroke="#C4923A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
         <div class="upload-text"><strong>點擊上傳或拖放圖片</strong>孩子2的腦波量測報告截圖</div>
       </label>
       <div class="processing-indicator" id="proc-child2">
@@ -878,7 +880,7 @@ body{
           <div class="success-check-badge">✓</div>
           <label class="success-reupload">
             <input type="file" id="file-reup-child2" accept="image/*" onchange="handleFileSelect(event,'child2')">
-            <div class="reupload-icon">🔄</div>
+            <div class="reupload-icon"><svg viewBox="0 0 28 28" fill="none"><path d="M5 14A9 9 0 0 1 23 14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 10l4 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="reupload-label">重新上傳</div>
           </label>
         </div>

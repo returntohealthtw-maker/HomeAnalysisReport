@@ -314,31 +314,44 @@ body {
   justify-content: center;
   text-align: center;
   padding: 80px 60px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(91,123,91,.07) 0%, transparent 70%),
-    var(--cream);
+  background: var(--cream);
   position: relative;
+  overflow: hidden;
+}
+/* Large decorative background number */
+.page-chapter-divider::before {
+  content: attr(data-chnum);
+  position: absolute;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 26rem;
+  font-weight: 700;
+  color: rgba(91,123,91,.05);
+  line-height: 1;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+  letter-spacing: -.04em;
 }
 .divider-num {
   font-family: 'Noto Serif TC', serif;
-  font-size: 5rem;
-  font-weight: 300;
-  color: var(--green-xl);
+  font-size: 4.5rem;
+  font-weight: 700;
+  color: var(--green);
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   letter-spacing: -.02em;
 }
 .divider-zh {
   font-family: 'Noto Serif TC', serif;
-  font-size: 1rem;
+  font-size: .9rem;
   color: var(--text-3);
-  letter-spacing: .2em;
-  margin-bottom: 24px;
+  letter-spacing: .25em;
+  margin-bottom: 28px;
 }
 .divider-bar {
   width: 60px; height: 3px;
   background: linear-gradient(90deg, var(--green), var(--gold));
-  margin: 0 auto 24px;
+  margin: 0 auto 28px;
   border-radius: 2px;
 }
 .divider-title {
@@ -369,105 +382,152 @@ body {
 
 /* ── Section Page ── */
 .page-section {
-  min-height: 100vh;
-  padding: 60px 70px;
-  display: flex;
-  flex-direction: column;
+  padding: 52px 72px 44px;
   position: relative;
+  /* Natural height - no min-height constraint */
+}
+
+/* Left accent bar */
+.page-section::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 52px; bottom: 44px;
+  width: 4px;
+  background: linear-gradient(180deg, var(--green), var(--gold-l));
+  border-radius: 0 3px 3px 0;
+}
+
+/* Chapter number watermark */
+.section-ch-num {
+  position: absolute;
+  right: 60px; top: 44px;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 5rem;
+  font-weight: 700;
+  color: var(--green-xl);
+  line-height: 1;
+  letter-spacing: -.02em;
+  user-select: none;
+  pointer-events: none;
 }
 
 .section-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--cream-2);
 }
 .section-breadcrumb {
-  font-size: .72rem;
+  font-size: .7rem;
   color: var(--text-3);
-  letter-spacing: .08em;
-  margin-bottom: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
-.section-breadcrumb span { color: var(--green); }
+.section-breadcrumb span { color: var(--green); font-weight: 500; }
 .section-title {
   font-family: 'Noto Serif TC', serif;
-  font-size: 1.55rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.4;
+  line-height: 1.45;
+}
+.section-sec-label {
+  font-size: .75rem;
+  color: var(--gold);
+  font-weight: 500;
   margin-bottom: 4px;
 }
-.section-divider {
-  width: 100%; height: 1px;
-  background: linear-gradient(90deg, var(--green-xl), var(--gold-xl), transparent);
-  margin-top: 14px;
-}
-
-.section-body {
-  flex: 1;
-  font-size: .95rem;
-  line-height: 2;
-  color: var(--text-2);
-  white-space: pre-wrap;
-}
-.section-body p { margin-bottom: 1em; }
 
 /* Predicted badge */
 .predicted-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  background: var(--gold-xl);
-  color: var(--gold);
-  font-size: .68rem;
-  padding: 2px 10px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  background: var(--gold-xl); color: var(--gold);
+  font-size: .68rem; padding: 2px 10px;
+  border-radius: 10px; margin-bottom: 12px;
   border: 1px solid var(--gold-l);
 }
 
-/* Section illustration */
-.section-illustration {
-  margin-top: 32px;
+/* ── Content area: image floats right when present ── */
+.section-content {
+  overflow: hidden; /* clearfix */
+}
+.section-illustration-float {
+  float: right;
+  width: 42%;
+  margin: 0 0 20px 28px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0,0,0,.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,.12);
 }
-.section-illustration img {
-  width: 100%;
-  display: block;
-  max-height: 380px;
-  object-fit: cover;
+.section-illustration-float img {
+  width: 100%; display: block;
+  max-height: 300px; object-fit: cover;
+}
+.section-illustration-bottom {
+  margin-top: 28px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,.10);
+}
+.section-illustration-bottom img {
+  width: 100%; display: block;
+  max-height: 260px; object-fit: cover;
 }
 .illustration-caption {
   background: var(--cream-2);
-  padding: 10px 20px;
-  font-size: .75rem;
+  padding: 8px 16px;
+  font-size: .72rem;
   color: var(--text-3);
   font-style: italic;
 }
 
-/* ── Footer of section page ── */
+/* Body text */
+.section-body {
+  font-size: .95rem;
+  line-height: 1.95;
+  color: var(--text-2);
+}
+.section-body p { margin-bottom: .9em; }
+.section-body strong { color: var(--text); font-weight: 600; }
+.section-body .list-item {
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+  margin-bottom: .5em;
+}
+.section-body .list-item::before {
+  content: '◆';
+  font-size: .6em;
+  color: var(--green);
+  margin-right: .5em;
+  vertical-align: middle;
+}
+
+/* Placeholder for sections not yet generated */
+.section-pending {
+  background: var(--cream-2);
+  border-radius: 8px;
+  padding: 20px 24px;
+  color: var(--text-3);
+  font-style: italic;
+  font-size: .88rem;
+  text-align: center;
+  border: 1px dashed var(--border);
+}
+
+/* ── Section Footer ── */
 .section-footer {
-  margin-top: 32px;
-  padding-top: 16px;
+  margin-top: 28px;
+  padding-top: 14px;
   border-top: 1px solid var(--cream-2);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  clear: both;
 }
-.footer-family { font-size: .72rem; color: var(--text-3); }
+.footer-family { font-size: .7rem; color: var(--text-3); }
 .footer-num {
-  font-size: .72rem;
-  color: var(--text-3);
-  background: var(--cream-2);
-  padding: 2px 10px;
-  border-radius: 10px;
-}
-
-/* Side accent */
-.page-section::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 60px; bottom: 60px;
-  width: 3px;
-  background: linear-gradient(180deg, var(--green-xl), var(--gold-xl));
-  border-radius: 0 2px 2px 0;
+  font-size: .7rem; color: var(--text-3);
+  background: var(--cream-2); padding: 2px 10px; border-radius: 10px;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -500,10 +560,12 @@ body {
     background: white !important;
   }
   .page-chapter-divider { min-height: 100vh; background: white !important; }
-  .page-section { min-height: auto; background: white; }
+  .page-section { background: white; page-break-inside: avoid; }
   .page-section::before { display: none; }
+  .section-ch-num { display: none; }
 
-  .section-illustration img { max-height: 240px; }
+  .section-illustration-float img { max-height: 220px; }
+  .section-illustration-bottom img { max-height: 200px; }
 
   h1, h2, h3 { page-break-after: avoid; }
   img { page-break-inside: avoid; }
@@ -659,9 +721,10 @@ body {
 {% set ch_idx = loop.index0 %}
 
 <!-- Chapter Divider Page -->
-<div class="page page-chapter-divider">
-  <div class="divider-num">{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}</div>
-  <div class="divider-zh">第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章</div>
+{% set ch_display = ch_zh[ch_idx] if ch_idx < 13 else chapter.num %}
+<div class="page page-chapter-divider" data-chnum="{{ ch_display }}">
+  <div class="divider-num">{{ ch_display }}</div>
+  <div class="divider-zh">第{{ ch_display }}章</div>
   <div class="divider-bar"></div>
   <div class="divider-title">{{ chapter.title }}</div>
   <ul class="divider-sections-list">
@@ -679,34 +742,48 @@ body {
 {% set image_path = result.get('image_path') %}
 
 <div class="page page-section">
+  <!-- Chapter watermark number -->
+  <div class="section-ch-num">{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}</div>
+
   <div class="section-header">
     <div class="section-breadcrumb">
       第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章 &nbsp;/&nbsp;
       <span>{{ chapter.title }}</span>
     </div>
-    <h2 class="section-title">
-      第{{ sec_zh[loop.index0] }}節　{{ section.title }}
-    </h2>
-    <div class="section-divider"></div>
+    <div class="section-sec-label">第{{ sec_zh[loop.index0] }}節</div>
+    <h2 class="section-title">{{ section.title }}</h2>
   </div>
 
-  <div class="section-body">
-    {% set paragraphs = text.split('\n') %}
-    {% for para in paragraphs %}
-    {% if para.strip() %}
-    <p>{{ para }}</p>
+  <div class="section-content">
+    {% if image_path %}
+    <!-- Image floats right when available -->
+    <div class="section-illustration-float">
+      <img src="{{ image_path }}" alt="{{ section.title }} 插圖" loading="lazy">
+      <div class="illustration-caption">AI 插圖 · {{ section.title }}</div>
+    </div>
     {% endif %}
-    {% endfor %}
-  </div>
 
-  {% if image_path %}
-  <div class="section-illustration">
-    <img src="{{ image_path }}" alt="{{ section.title }} 插圖" loading="lazy">
-    <div class="illustration-caption">
-      ▲ AI 生成插圖：{{ section.title }}
+    <div class="section-body">
+      {% if text and text.strip() and text.strip() != '（此節內容生成中...）' %}
+        {% set paragraphs = text.split('\n') %}
+        {% for para in paragraphs %}
+          {% if para.strip() %}
+            {% set p = para.strip() %}
+            {# Numbered list items #}
+            {% if p[0].isdigit() and (p[1:2] == '.' or p[1:2] == '、') %}
+              <p class="list-item">{{ p|replace('**','<strong>',1)|replace('**','</strong>',1)|safe }}</p>
+            {% else %}
+              <p>{{ p|replace('**','<strong>')|replace('**','</strong>')|safe }}</p>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <div class="section-pending">
+          ⏳ 此節內容尚未生成，請重新生成完整報告或使用「自訂章節」功能補充此節。
+        </div>
+      {% endif %}
     </div>
   </div>
-  {% endif %}
 
   <div class="section-footer">
     <div class="footer-family">{{ family_name }} 親子腦波關係報告</div>
