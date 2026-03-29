@@ -537,6 +537,14 @@ body {
 /* Section inner wrapper (used in print layout) */
 .section-inner { /* screen: no effect */ }
 
+/* ── Wave legend standalone page ── */
+.page-wave-legend {
+  background: var(--cream);
+  padding: 60px 70px;
+  display: flex; align-items: center; justify-content: center;
+}
+.page-wave-legend .wave-legend { max-width: 520px; width: 100%; margin: 0; }
+
 /* ── TOC page ── */
 .page-toc { background: var(--cream); padding: 60px 70px; }
 .toc-title {
@@ -563,6 +571,12 @@ body {
 }
 .toc-sec-dots { flex: 1; border-bottom: 1px dotted var(--cream-2); margin: 0 6px 3px; }
 .toc-sec-num { color: var(--text-3); min-width: 18px; }
+.toc-cont-header {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 1rem; font-weight: 600; color: var(--text-3);
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--cream-2);
+}
 
 /* ── Cover / back-cover image pages ── */
 .page-cover-img {
@@ -608,13 +622,23 @@ body {
   .page-data-overview {
     height: auto !important;
     overflow: visible !important;
-    padding: 16mm 22mm 14mm;
+    padding: 16mm 22mm 20mm;
   }
   .page-toc {
     height: auto !important;
     overflow: visible !important;
-    padding: 20mm 22mm 16mm;
+    padding: 20mm 22mm 18mm;
   }
+  .page-toc-cont {
+    padding-top: 20mm;
+  }
+  .page-wave-legend {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 22mm 22mm 18mm;
+    display: block;
+  }
+  .page-wave-legend .wave-legend { margin: 0 auto; max-width: 100%; }
 
   /* ── Chapter divider: exactly one page ── */
   .page-chapter-divider {
@@ -859,7 +883,10 @@ body {
     {% endfor %}
   </div>
 
-  <!-- Wave legend -->
+</div>
+
+<!-- ═══ WAVE LEGEND PAGE ═══ -->
+<div class="page page-wave-legend">
   <div class="wave-legend">
     <div class="legend-title">腦波頻段對照說明</div>
     <div class="legend-grid">
@@ -877,11 +904,15 @@ body {
 <!-- ═══ TABLE OF CONTENTS ═══ -->
 {% set ch_zh_toc = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三'] %}
 {% set sec_zh_toc = ['一','二','三','四'] %}
+{% set toc_split = 6 %}{# chapters 0-5 on page 1, rest on page 2 #}
+
+<!-- TOC page 1: chapters 1–6 -->
 <div class="page page-toc">
   <div class="toc-title">目錄</div>
   <div class="toc-subtitle">{{ family_name }} 親子腦波關係深度報告 &nbsp;·&nbsp; {{ generated_at }}</div>
   {% for chapter in chapters %}
   {% set ci = loop.index0 %}
+  {% if ci < toc_split %}
   <div class="toc-ch-row">
     <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
     <span>{{ chapter.title }}</span>
@@ -894,8 +925,33 @@ body {
     <span class="toc-sec-dots"></span>
   </div>
   {% endfor %}
+  {% endif %}
   {% endfor %}
 </div>
+
+<!-- TOC page 2: chapters 7+ (only rendered when chapters > toc_split) -->
+{% if chapters|length > toc_split %}
+<div class="page page-toc page-toc-cont">
+  <div class="toc-cont-header">目錄（續）</div>
+  {% for chapter in chapters %}
+  {% set ci = loop.index0 %}
+  {% if ci >= toc_split %}
+  <div class="toc-ch-row">
+    <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
+    <span>{{ chapter.title }}</span>
+    <span class="toc-ch-dots"></span>
+  </div>
+  {% for section in chapter.sections %}
+  <div class="toc-sec-row">
+    <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
+    <span>{{ section.title }}</span>
+    <span class="toc-sec-dots"></span>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 
 <!-- ═══ CHAPTERS ═══ -->
 {% set ch_zh = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三'] %}
