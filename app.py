@@ -32,8 +32,9 @@ def md_to_html(text: str) -> str:
 app.jinja_env.filters['md'] = md_to_html
 
 
-def truncate_at_sentence(text: str, max_chars: int = 460) -> str:
-    """Truncate text at the last sentence-end punctuation before max_chars."""
+def truncate_at_sentence(text: str, max_chars: int = 570) -> str:
+    """Truncate text at the last sentence-end punctuation (。！？…) before max_chars.
+    Only the overflow tail is removed; the bulk of the text is preserved."""
     if not text or len(text) <= max_chars:
         return text
     endings = set('。！？…')
