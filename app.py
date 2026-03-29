@@ -551,7 +551,33 @@ def api_test():
 
 @app.route("/")
 def index():
-    return render_template("index.html", api_key_set=key_is_set())
+    cover_exists    = (Path('static') / '親子互動報告_封面.png').exists()
+    backcover_exists = (Path('static') / '親子互動報告_封底.png').exists()
+    return render_template(
+        "index.html",
+        api_key_set=key_is_set(),
+        cover_url    = '/static/親子互動報告_封面.png'   if cover_exists     else None,
+        backcover_url = '/static/親子互動報告_封底.png' if backcover_exists else None,
+    )
+
+
+@app.route("/upload-cover", methods=["POST"])
+def upload_cover():
+    """Replace cover or back-cover image (base64 encoded)."""
+    data = request.get_json(force=True, silent=True) or {}
+    kind     = data.get("kind")       # "cover" | "backcover"
+    img_b64  = data.get("image_b64")
+    if kind not in ("cover", "backcover") or not img_b64:
+        return jsonify({"ok": False, "error": "Missing kind or image_b64"}), 400
+    filename = "親子互動報告_封面.png" if kind == "cover" else "親子互動報告_封底.png"
+    try:
+        img_bytes = base64.b64decode(img_b64)
+        dst = Path("static") / filename
+        with open(dst, "wb") as f:
+            f.write(img_bytes)
+        return jsonify({"ok": True, "url": f"/static/{filename}"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/extract", methods=["POST"])

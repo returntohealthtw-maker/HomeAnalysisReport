@@ -476,6 +476,42 @@ body{
   background:transparent;color:var(--green);cursor:pointer;transition:all .15s;
 }
 .csp-btn:hover{background:var(--green-xl)}
+/* ── Cover / back-cover selection ── */
+.cover-pair-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  padding:0 0 4px;
+}
+.cover-card{
+  border:1.5px solid var(--border);border-radius:var(--r);
+  background:#fff;padding:14px 16px 12px;position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  transition:border-color .18s;
+}
+.cover-card:hover{border-color:var(--green-l)}
+.cover-card-label{
+  font-size:.78rem;font-weight:600;color:var(--text);align-self:flex-start;
+}
+.cover-preview{
+  width:100%;aspect-ratio:3/4;border-radius:var(--r-sm);
+  overflow:hidden;background:var(--cream);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;max-height:160px;
+}
+.cover-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.cover-badge-default{
+  position:absolute;top:6px;right:6px;
+  background:var(--green);color:#fff;
+  font-size:.65rem;font-weight:600;padding:2px 7px;border-radius:10px;
+}
+.cover-placeholder{font-size:.78rem;color:var(--text-3);font-style:italic}
+.cover-upload-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:var(--r-sm);
+  border:1px solid var(--border);background:var(--cream);
+  font-size:.78rem;color:var(--text-2);cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+.cover-upload-btn:hover{background:var(--green-xl);border-color:var(--green-l);color:var(--green)}
 .chapters-tree{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .ch-block{border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
 .ch-header{
@@ -974,9 +1010,62 @@ body{
     </div>
   </div>
 
-  <!-- STEP 4: Generate -->
+  <!-- STEP 4: Cover / Back-cover selection -->
   <div class="step-label">
     <div class="step-num">4</div>
+    <div>
+      <div class="step-title">封面與封底</div>
+      <div class="step-hint">使用預設圖片，或上傳自訂封面 / 封底（PNG / JPG）</div>
+    </div>
+  </div>
+
+  <div class="cover-pair-grid">
+
+    <!-- Cover card -->
+    <div class="cover-card" id="cover-card">
+      <div class="cover-card-label">封面</div>
+      <div class="cover-preview" id="cover-preview">
+        {% if cover_url %}
+        <img src="{{ cover_url }}" alt="封面預覽" id="cover-img">
+        <div class="cover-badge-default">預設</div>
+        {% else %}
+        <div class="cover-placeholder">尚無封面</div>
+        {% endif %}
+      </div>
+      <label class="cover-upload-btn" for="cover-file-input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        上傳封面
+      </label>
+      <input type="file" id="cover-file-input" accept="image/*"
+             style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;"
+             onchange="uploadCoverImage('cover', this)">
+    </div>
+
+    <!-- Back-cover card -->
+    <div class="cover-card" id="backcover-card">
+      <div class="cover-card-label">封底</div>
+      <div class="cover-preview" id="backcover-preview">
+        {% if backcover_url %}
+        <img src="{{ backcover_url }}" alt="封底預覽" id="backcover-img">
+        <div class="cover-badge-default">預設</div>
+        {% else %}
+        <div class="cover-placeholder">尚無封底</div>
+        {% endif %}
+      </div>
+      <label class="cover-upload-btn" for="backcover-file-input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        上傳封底
+      </label>
+      <input type="file" id="backcover-file-input" accept="image/*"
+             style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;"
+             onchange="uploadCoverImage('backcover', this)">
+    </div>
+
+  </div><!-- /cover-pair-grid -->
+
+  <!-- STEP 5: Generate -->
+  <div class="step-label">
+    <div class="step-num">5</div>
     <div>
       <div class="step-title">生成報告</div>
       <div class="step-hint">系統將運用 Gemini 2.5 Pro 生成深度心理分析，以溫暖的高階心理醫生口吻撰寫</div>
@@ -1075,6 +1164,37 @@ function handleDrop(e, role) {
 function handleFileSelect(e, role) {
   const file = e.target.files[0];
   if (file) processImage(file, role);
+}
+
+// ── Cover / Back-cover upload ──────────────────────────────────────────────
+async function uploadCoverImage(kind, inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const previewId = kind === 'cover' ? 'cover-preview' : 'backcover-preview';
+  const preview   = document.getElementById(previewId);
+
+  // Optimistic preview
+  const objUrl = URL.createObjectURL(file);
+  preview.innerHTML = `<img src="${objUrl}" style="width:100%;height:100%;object-fit:cover">
+    <div class="cover-badge-default">自訂</div>`;
+
+  try {
+    const b64 = await fileToBase64(file);
+    const res = await fetch('/upload-cover', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ kind, image_b64: b64 })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('success', kind === 'cover' ? '封面已更新' : '封底已更新', '新圖片已儲存');
+    } else {
+      showToast('error', '上傳失敗', data.error || '');
+    }
+  } catch(e) {
+    showToast('error', '上傳錯誤', e.message);
+  }
+  inputEl.value = '';
 }
 
 async function processImage(file, role) {

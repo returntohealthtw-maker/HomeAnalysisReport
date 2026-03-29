@@ -583,13 +583,11 @@ body {
   .nav-bar { display: none !important; }
   .report-container { padding-top: 0; max-width: 100%; }
 
-  /* Every .page occupies exactly one A4 sheet */
+  /* Base rule for all .page blocks — page-break management only */
   .page {
     width: 210mm;
-    height: 297mm;
     box-shadow: none;
     margin: 0;
-    overflow: hidden;
     page-break-after: always;
     break-after: page;
     position: relative;
@@ -597,18 +595,40 @@ body {
   }
   .page:last-child { page-break-after: avoid; break-after: avoid; }
 
-  /* Cover & back cover: full bleed image */
-  .page-cover-img { padding: 0; }
+  /* ── Cover & back cover: full-bleed, exactly one page ── */
+  .page-cover-img {
+    height: 297mm; overflow: hidden; padding: 0;
+  }
   .page-cover-img img { width: 210mm; height: 297mm; object-fit: cover; display: block; }
 
-  .page-cover { padding: 28mm 22mm 18mm; background: white !important; }
-  .page-data-overview { padding: 16mm 22mm 14mm; }
-  .page-toc { padding: 20mm 22mm 16mm; }
-  .page-chapter-divider { padding: 0; min-height: 297mm; background: white !important; }
+  /* ── Styled cover (fallback): one page ── */
+  .page-cover { height: 297mm; overflow: hidden; padding: 28mm 22mm 18mm; background: white !important; }
 
-  /* Section page: fixed layout, each section = exactly one A4 page */
+  /* ── Data overview & TOC: FREE-FLOWING, multi-page OK ── */
+  .page-data-overview {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 16mm 22mm 14mm;
+  }
+  .page-toc {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 20mm 22mm 16mm;
+  }
+
+  /* ── Chapter divider: exactly one page ── */
+  .page-chapter-divider {
+    height: 297mm;
+    overflow: hidden;
+    padding: 0;
+    background: white !important;
+  }
+
+  /* ── Section page: EXACTLY one A4 page, no overflow ── */
   .page-section {
-    padding: 0;            /* managed by inner divs */
+    height: 297mm;
+    overflow: hidden;
+    padding: 0;
   }
   .page-section::before { display: none; }
   .section-ch-num { display: none; }
@@ -622,42 +642,69 @@ body {
     justify-content: space-between;
     border-bottom: 0.4pt solid #DDD8CF;
     background: white;
+    flex-shrink: 0;
   }
   .prh-family { font-size: 7.5pt; color: #888; }
   .prh-chapter { font-size: 7.5pt; color: #5B7B5B; font-weight: 500; }
 
-  /* Section inner layout */
+  /* Section inner: flex column — fills full height between head & foot */
   .section-inner {
-    padding: 9mm 18mm 0mm;
-    height: calc(297mm - 9mm - 9mm); /* full page minus header and footer */
+    padding: 7mm 18mm 0;
+    height: calc(297mm - 9mm - 9mm);
     overflow: hidden;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
   }
-  .section-header { margin-bottom: 6mm; padding-bottom: 4mm; }
-  .section-breadcrumb { font-size: 7pt; margin-bottom: 2mm; }
-  .section-sec-label { font-size: 7.5pt; margin-bottom: 1mm; }
+  /* Section title block (breadcrumb hidden; keep sec-label + title) */
+  .section-header {
+    margin-bottom: 4mm;
+    padding-bottom: 3mm;
+    border-bottom: 0.5pt solid #DDD8CF;
+    flex-shrink: 0;
+  }
+  .section-breadcrumb { display: none !important; }   /* duplicate of running head */
+  .section-sec-label { font-size: 7.5pt; margin-bottom: 1.5mm; }
   .section-title { font-size: 14pt; margin-bottom: 0; line-height: 1.35; }
 
-  /* Body text */
-  .section-body {
-    font-size: 10pt;
-    line-height: 1.82;
-    font-weight: 400 !important;  /* force regular weight */
+  /* Content area grows to fill remaining space */
+  .section-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
   }
-  .section-body p { margin-bottom: 3.5pt; font-weight: 400 !important; }
+
+  /* Body text — fills space, justified */
+  .section-body {
+    flex: 1;
+    font-size: 10.5pt;
+    line-height: 2.15;
+    letter-spacing: 0.025em;
+    text-align: justify;
+    font-weight: 400 !important;
+    overflow: hidden;
+  }
+  .section-body p { margin-bottom: 4.5pt; font-weight: 400 !important; }
   .section-body strong { font-weight: 600 !important; }
   .section-body .list-item { font-weight: 400 !important; }
 
-  /* Image in print: below text, fixed height */
+  /* Image in print: below text, constrained height */
   .section-illustration-float {
     float: none !important;
     width: 100% !important;
-    margin: 5mm 0 0 !important;
-    max-height: 48mm;
+    margin: 4mm 0 0 !important;
+    flex-shrink: 0;
+    max-height: 50mm;
+    overflow: hidden;
   }
-  .section-illustration-float img { max-height: 44mm; }
-  .section-illustration-bottom { margin-top: 4mm; max-height: 48mm; }
-  .section-illustration-bottom img { max-height: 44mm; }
+  .section-illustration-float img { max-height: 46mm; width: 100%; object-fit: cover; }
+  .section-illustration-bottom { margin-top: 3mm; max-height: 50mm; overflow: hidden; flex-shrink: 0; }
+  .section-illustration-bottom img { max-height: 46mm; }
+
+  /* Screen footer hidden in print — use running-foot instead */
+  .section-footer { display: none !important; }
 
   /* Running footer inside section page */
   .print-running-foot {
@@ -892,10 +939,6 @@ body {
   <!-- Inner content wrapper (controls overflow in print) -->
   <div class="section-inner">
     <div class="section-header">
-      <div class="section-breadcrumb">
-        第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章 &nbsp;/&nbsp;
-        <span>{{ chapter.title }}</span>
-      </div>
       <div class="section-sec-label">第{{ sec_label }}節</div>
       <h2 class="section-title">{{ section.title }}</h2>
     </div>
