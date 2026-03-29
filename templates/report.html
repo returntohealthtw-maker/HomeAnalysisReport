@@ -1011,7 +1011,13 @@ body {
 
       <div class="section-body">
         {% if text and text.strip() and text.strip() != '（此節內容生成中...）' %}
-          {% set paragraphs = text.split('\n') %}
+          {# When there's an illustration, truncate at last sentence end to stay on one page #}
+          {% if image_path and image_mode == 'full' %}
+            {% set display_text = text|truncate_sentence(460) %}
+          {% else %}
+            {% set display_text = text %}
+          {% endif %}
+          {% set paragraphs = display_text.split('\n') %}
           {% for para in paragraphs %}
             {% if para.strip() %}
               {% set p = para.strip() %}

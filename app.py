@@ -31,6 +31,23 @@ def md_to_html(text: str) -> str:
 
 app.jinja_env.filters['md'] = md_to_html
 
+
+def truncate_at_sentence(text: str, max_chars: int = 460) -> str:
+    """Truncate text at the last sentence-end punctuation before max_chars."""
+    if not text or len(text) <= max_chars:
+        return text
+    endings = set('。！？…')
+    sub = text[:max_chars + 1]
+    last_pos = -1
+    for i, ch in enumerate(sub):
+        if ch in endings:
+            last_pos = i
+    if last_pos > 0:
+        return text[:last_pos + 1]
+    return text[:max_chars]
+
+app.jinja_env.filters['truncate_sentence'] = truncate_at_sentence
+
 # ── Copy cover/back-cover images to static so they're web-accessible ─────────
 COVER_SRCS = ['親子互動報告_封面.png', '親子互動報告_封底.png']
 for _fname in COVER_SRCS:
@@ -461,29 +478,46 @@ def generate_section_text(
 
 def generate_section_image(section_title: str, chapter_title: str, text_preview: str, job_id: str, key: str):
     """Generate illustration via Gemini image model and save locally. Returns local URL path or None."""
-    prompt = f"""Create an ultra-premium 3D rendered illustration for a luxury East Asian family psychology wellness report.
+    prompt = f"""You are the art director for a premium East Asian family psychology brainwave wellness report (price: USD $500 per copy, printed hardcover).
 
-Theme: "{section_title}" — Chapter: "{chapter_title}"
-Emotional core: {text_preview[:150]}
+Your task: create one ultra-premium 3D CGI illustration for this specific report section.
 
-RENDERING STYLE — must follow exactly:
-- Render quality: Photorealistic 3D CGI, cinema-grade rendering (think Pixar / DreamWorks quality background art)
-- Lighting: Soft volumetric cinematic lighting — warm golden-hour key light from upper left, subtle cool ambient fill, delicate caustic highlights
-- Depth of field: Gentle background blur (bokeh), crisp midground, dreamlike soft foreground elements
-- Materials: Translucent jade, polished celadon ceramic, soft-glow frosted glass, silk fabric with micro-detail sheen, living moss with subsurface scattering
-- Color palette: Warm sage green (#5B7B5B), deep celadon, gold leaf accents (#C4923A), soft cream (#FAF7F2), misty lavender-grey shadows
+═══ SECTION CONTEXT ═══
+Chapter: "{chapter_title}"
+Section: "{section_title}"
+Section text (read carefully to extract the key visual metaphor):
+---
+{text_preview[:400]}
+---
 
-COMPOSITION:
-- Format: Horizontal 16:9, cinematic crop
-- Foreground: Exquisite botanical details — translucent leaves with visible veining, dewdrops with light refraction, unfurling fern fronds
-- Midground: Abstract soft-glow sculptural forms — flowing ribbons of light suggesting invisible bonds between parent and child figures (silhouette-only, NO faces, NO text)
-- Background: Soft misty atmosphere with floating luminous particles, subtle gradient from warm to cool
+═══ STEP 1 — EXTRACT THE CORE VISUAL METAPHOR ═══
+Before rendering, identify the single most powerful visual metaphor or psychological concept in the text above.
+Examples of how to interpret:
+• "神經系統長期鎖定在交感神經的戰或逃模式" → a coiled spring or flickering flame under glass
+• "容忍之窗極窄，微小刺激即觸發過激反應" → a narrow illuminated corridor between two towering walls of stone
+• "情感連結表淺，難以真正進入他人的內心" → two luminous orbs separated by frosted glass, almost touching
+• "腦波共振，兩顆大腦彼此調諧" → two tuning forks of jade vibrating in soft harmony, glowing ripples
+• "父親長期壓抑，防衛如盔甲" → an ornate jade armour shell, cracked at the seams, soft light escaping within
+• "家庭是安全的港灣" → a luminous lantern sheltered in cupped jade hands, warm glow against misty dark
 
-MANDATORY RULES:
-- NO text, NO numbers, NO letters, NO labels anywhere
-- NO realistic human faces — only abstract sculptural silhouettes or flowing fabric shapes
-- The mood must feel: safe, elevated, deeply healing, quietly luxurious
-- Professional enough to appear in a premium $500 printed psychological wellness report"""
+═══ STEP 2 — RENDER SPECIFICATION ═══
+Render quality: Photorealistic 3D CGI, cinema-grade (Pixar / DreamWorks quality background art standard)
+Lighting: Soft volumetric — warm golden-hour key light from upper-left, subtle cool ambient fill, delicate caustic highlights on surfaces
+Depth of field: Crisp midground subject, gentle bokeh background, dreamlike soft foreground elements
+Materials: Translucent jade, polished celadon ceramic, soft-glow frosted glass, silk fabric with micro-sheen, living moss with subsurface scattering
+Color palette: Warm sage green (#5B7B5B), deep celadon, gold leaf accents (#C4923A), soft cream (#FAF7F2), misty lavender-grey shadows
+
+═══ STEP 3 — COMPOSITION ═══
+Format: Horizontal 16:9, cinematic crop
+Foreground: Exquisite botanical detail — translucent leaves with visible veining, dewdrops with light refraction, unfurling fern fronds
+Midground: THE CORE METAPHOR OBJECT — a specific 3D sculptural form that embodies the psychological concept identified in Step 1 (abstract, no faces)
+Background: Soft misty atmosphere, floating luminous particles, warm-to-cool gradient
+
+═══ MANDATORY RULES ═══
+- NO text, NO numbers, NO letters, NO labels anywhere in the image
+- NO realistic human faces — only abstract silhouettes or sculptural forms
+- The rendered object MUST visually represent the specific metaphor from this section's text
+- Mood: safe, elevated, deeply healing, quietly luxurious — professional enough for a $500 hardcover print"""
 
     try:
         response = get_client().models.generate_content(

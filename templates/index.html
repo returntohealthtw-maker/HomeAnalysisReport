@@ -1580,7 +1580,7 @@ function buildChaptersTree() {
     const secItems = ch.sections.map(sec => `
       <div class="sec-item">
         <label>
-          <input type="checkbox" class="sec-check" data-key="${chKey}_${sec.num}" checked
+          <input type="checkbox" class="sec-check" data-key="${chKey}_${sec.num}"
             onchange="onSecCheck(this,'${chKey}')">
           <span class="sec-name">§${sec.num} ${sec.title}</span>
         </label>
@@ -1588,11 +1588,11 @@ function buildChaptersTree() {
     return `
       <div class="ch-block" id="chb-${chKey}">
         <div class="ch-header" onclick="toggleChapterBlock('${chKey}')">
-          <input type="checkbox" class="ch-check" id="chk-${chKey}" checked
+          <input type="checkbox" class="ch-check" id="chk-${chKey}"
             onclick="event.stopPropagation()" onchange="onChapterCheck(this,'${chKey}')">
           <span class="ch-icon">${ch.icon}</span>
           <span class="ch-name">第${chNumToZh(chKey)}章・${ch.title}</span>
-          <span class="ch-sec-count" id="chc-${chKey}">4/4</span>
+          <span class="ch-sec-count" id="chc-${chKey}">0/4</span>
           <span class="ch-toggle" id="cht-${chKey}">▼</span>
         </div>
         <div class="sec-list" id="seclist-${chKey}">${secItems}</div>
