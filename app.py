@@ -479,67 +479,68 @@ def generate_section_text(
 
 def generate_section_image(section_title: str, chapter_title: str, text_preview: str, job_id: str, key: str):
     """Generate illustration via Gemini image model and save locally. Returns local URL path or None."""
-    prompt = f"""You are the art director for a premium East Asian family psychology brainwave wellness report (price: USD $500 per copy, printed hardcover).
+    prompt = f"""Create a warm, clear editorial illustration for a printed East Asian family psychology brainwave report.
 
-Your task: create one ultra-premium 3D CGI illustration for this specific report section.
+SECTION: "{section_title}"  |  CHAPTER: "{chapter_title}"
 
-═══ SECTION CONTEXT ═══
-Chapter: "{chapter_title}"
-Section: "{section_title}"
-Section text (read carefully to extract the key visual metaphor):
+WHAT THE TEXT IS ABOUT (read to understand what to draw):
 ---
-{text_preview[:400]}
+{text_preview[:300]}
 ---
 
-═══ STEP 1 — EXTRACT THE CORE VISUAL METAPHOR ═══
-Before rendering, identify the single most powerful visual metaphor or psychological concept in the text above.
-Examples of how to interpret:
-• "神經系統長期鎖定在交感神經的戰或逃模式" → a coiled spring or flickering flame under glass
-• "容忍之窗極窄，微小刺激即觸發過激反應" → a narrow illuminated corridor between two towering walls of stone
-• "情感連結表淺，難以真正進入他人的內心" → two luminous orbs separated by frosted glass, almost touching
-• "腦波共振，兩顆大腦彼此調諧" → two tuning forks of jade vibrating in soft harmony, glowing ripples
-• "父親長期壓抑，防衛如盔甲" → an ornate jade armour shell, cracked at the seams, soft light escaping within
-• "家庭是安全的港灣" → a luminous lantern sheltered in cupped jade hands, warm glow against misty dark
+YOUR GOAL: Draw an illustration that lets the reader INSTANTLY understand the main message of this section — no guessing, no abstract puzzles. The image should feel like a high-quality magazine infographic meets warm Asian editorial art.
 
-═══ STEP 2 — RENDER SPECIFICATION ═══
-Render quality: Photorealistic 3D CGI, cinema-grade (Pixar / DreamWorks quality background art standard)
-Lighting: Soft volumetric — warm golden-hour key light from upper-left, subtle cool ambient fill, delicate caustic highlights on surfaces
-Depth of field: Crisp midground subject, gentle bokeh background, dreamlike soft foreground elements
-Materials: Translucent jade, polished celadon ceramic, soft-glow frosted glass, silk fabric with micro-sheen, living moss with subsurface scattering
-Color palette: Warm sage green (#5B7B5B), deep celadon, gold leaf accents (#C4923A), soft cream (#FAF7F2), misty lavender-grey shadows
+HOW TO DECIDE WHAT TO DRAW:
+• Read the text above carefully.
+• Identify the SINGLE clearest concept (e.g. "parents and child are emotionally disconnected", "family members are draining each other's energy", "a nervous system stuck in fight-or-flight", "two parents resonating through brainwaves").
+• Visualise it as a CONCRETE scene or diagram. Use these approaches in order of preference:
+  1. Warm family silhouette scene showing the exact dynamic (e.g. parent and child sitting back-to-back with visible tension lines, or parents holding hands around a child in a warm glow)
+  2. Simple symbolic diagram with clear labels (e.g. a gauge showing "energy level 31%", two interlinked gears labelled "媽媽" and "爸爸", a brain with a narrow window labelled "容忍之窗")
+  3. A clear metaphor object with short label (e.g. a nearly-empty lantern labelled "氣血飽滿 31%", two magnets facing the same pole with label "防禦機制")
 
-═══ STEP 3 — COMPOSITION ═══
-Format: Horizontal 16:9, cinematic crop
-Foreground: Exquisite botanical detail — translucent leaves with visible veining, dewdrops with light refraction, unfurling fern fronds
-Midground: THE CORE METAPHOR OBJECT — a specific 3D sculptural form that embodies the psychological concept identified in Step 1 (abstract, no faces)
-Background: Soft misty atmosphere, floating luminous particles, warm-to-cool gradient
+STYLE:
+• Warm editorial illustration — think Nikkei magazine or Harvard Business Review infographic, but with Asian warmth
+• Soft watercolour + clean line art hybrid: bold but gentle
+• Colour palette: sage green (#5B7B5B), warm gold (#C4923A), soft cream (#FAF7F2), misty teal
+• Characters: SIMPLE SILHOUETTES (no realistic faces) — parent/child figures clearly distinguishable by size
+• Text in image: SHORT Chinese labels (2–6 characters) ARE ALLOWED and encouraged if they make the concept clearer
 
-═══ MANDATORY RULES ═══
-- NO text, NO numbers, NO letters, NO labels anywhere in the image
-- NO realistic human faces — only abstract silhouettes or sculptural forms
-- The rendered object MUST visually represent the specific metaphor from this section's text
-- Mood: safe, elevated, deeply healing, quietly luxurious — professional enough for a $500 hardcover print"""
+COMPOSITION:
+• Horizontal 16:9 format
+• One clear focal element in the centre-right
+• Supporting elements on the left
+• Clean background — gradient from warm cream to soft teal, no busy patterns
 
-    try:
-        response = get_client().models.generate_content(
-            model=IMAGE_MODEL,
-            contents=[prompt],
-        )
-        for part in response.parts:
-            if part.inline_data is not None:
-                img_dir = IMAGES_DIR / job_id
-                img_dir.mkdir(exist_ok=True)
-                img_path = img_dir / f"{key}.png"
-                raw = part.inline_data.data
-                # SDK may return bytes or base64 string depending on version
-                if isinstance(raw, bytes):
-                    img_path.write_bytes(raw)
-                else:
-                    img_path.write_bytes(base64.b64decode(raw))
-                return f"/static/report_images/{job_id}/{key}.png"
-        return None
-    except Exception:
-        return None
+QUALITY: Professional enough for a premium printed psychological report — clear, warm, meaningful at a glance."""
+
+    for attempt in range(3):
+        try:
+            response = get_client().models.generate_content(
+                model=IMAGE_MODEL,
+                contents=[prompt],
+            )
+            for part in response.parts:
+                if part.inline_data is not None:
+                    img_dir = IMAGES_DIR / job_id
+                    img_dir.mkdir(exist_ok=True)
+                    img_path = img_dir / f"{key}.png"
+                    raw = part.inline_data.data
+                    if isinstance(raw, bytes):
+                        img_path.write_bytes(raw)
+                    else:
+                        img_path.write_bytes(base64.b64decode(raw))
+                    print(f"[IMAGE OK] key={key} attempt={attempt+1}", flush=True)
+                    return f"/static/report_images/{job_id}/{key}.png"
+            print(f"[IMAGE EMPTY] key={key} attempt={attempt+1} — no inline_data in response", flush=True)
+            return None
+        except Exception as e:
+            err = str(e)
+            print(f"[IMAGE ERR] key={key} attempt={attempt+1} error={err[:120]}", flush=True)
+            if attempt < 2:
+                wait = 8 * (attempt + 1)   # 8s, 16s between retries
+                print(f"[IMAGE RETRY] waiting {wait}s…", flush=True)
+                time.sleep(wait)
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -587,8 +588,11 @@ def run_generation(job_id: str, members: list, image_mode: str, family_name: str
             image_path = None
             if image_mode == "full":
                 image_path = generate_section_image(
-                    section["title"], chapter["title"], text[:200], job_id, key
+                    section["title"], chapter["title"], text[:300], job_id, key
                 )
+                # Brief pause after image gen to respect API rate limits
+                if image_path:
+                    time.sleep(3)
 
             job["results"][key] = {
                 "text": text,

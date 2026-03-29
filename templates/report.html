@@ -673,14 +673,13 @@ body {
   .prh-family { font-size: 7.5pt; color: #888; }
   .prh-chapter { font-size: 7.5pt; color: #5B7B5B; font-weight: 500; }
 
-  /* Section inner: flex column — fills full height between head & foot */
+  /* Section inner: block layout (flex removed so float works inside) */
   .section-inner {
     padding: 7mm 18mm 0;
     height: calc(297mm - 9mm - 9mm);
     overflow: hidden;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
+    display: block;
   }
   /* Section title block (breadcrumb hidden; keep sec-label + title) */
   .section-header {
@@ -693,40 +692,50 @@ body {
   .section-sec-label { font-size: 7.5pt; margin-bottom: 1.5mm; }
   .section-title { font-size: 14pt; margin-bottom: 0; line-height: 1.35; }
 
-  /* Content area grows to fill remaining space */
+  /* Content area: use normal block flow so float works correctly */
   .section-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    display: block !important;
     overflow: hidden;
-    min-height: 0;
+    flex: 1;
   }
 
-  /* Body text — fills space, justified */
+  /* Image in print: FLOAT RIGHT like the web view */
+  .section-illustration-float {
+    float: right !important;
+    width: 43% !important;
+    margin: 0 0 5mm 7mm !important;
+    max-height: 78mm;
+    border-radius: 3pt;
+    overflow: hidden;
+    box-shadow: 0 2pt 8pt rgba(0,0,0,.15);
+    flex-shrink: unset;
+  }
+  .section-illustration-float img {
+    width: 100% !important;
+    max-height: 74mm !important;
+    object-fit: cover !important;
+    display: block;
+  }
+  .illustration-caption {
+    font-size: 6.5pt;
+    padding: 3pt 6pt;
+  }
+
+  /* Body text — flows around the floated image */
   .section-body {
-    flex: 1;
+    display: block !important;
     font-size: 10.5pt;
-    line-height: 2.15;
-    letter-spacing: 0.025em;
+    line-height: 2.1;
+    letter-spacing: 0.02em;
     text-align: justify;
     font-weight: 400 !important;
     overflow: hidden;
   }
-  .section-body p { margin-bottom: 4.5pt; font-weight: 400 !important; }
+  .section-body p { margin-bottom: 4pt; font-weight: 400 !important; }
   .section-body strong { font-weight: 600 !important; }
   .section-body .list-item { font-weight: 400 !important; }
 
-  /* Image in print: below text, constrained height */
-  .section-illustration-float {
-    float: none !important;
-    width: 100% !important;
-    margin: 4mm 0 0 !important;
-    flex-shrink: 0;
-    max-height: 50mm;
-    overflow: hidden;
-  }
-  .section-illustration-float img { max-height: 46mm; width: 100%; object-fit: cover; }
-  .section-illustration-bottom { margin-top: 3mm; max-height: 50mm; overflow: hidden; flex-shrink: 0; }
+  .section-illustration-bottom { margin-top: 3mm; max-height: 50mm; overflow: hidden; }
   .section-illustration-bottom img { max-height: 46mm; }
 
   /* Screen footer hidden in print — use running-foot instead */
