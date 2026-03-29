@@ -1,11 +1,13 @@
 import os
+import re
 import json
 import uuid
 import base64
+import shutil
 import threading
 import time
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -15,6 +17,28 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB upload limit
+
+# ── Jinja2 custom filter: convert **bold** markdown to <strong> ──────────────
+def md_to_html(text: str) -> str:
+    """Convert minimal markdown (bold, numbered lists) to safe HTML."""
+    if not text:
+        return text
+    # Bold: **text** → <strong>text</strong>  (non-greedy, single-line)
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+    # Remove any leftover lone ** that didn't pair
+    text = text.replace('**', '')
+    return text
+
+app.jinja_env.filters['md'] = md_to_html
+
+# ── Copy cover/back-cover images to static so they're web-accessible ─────────
+COVER_SRCS = ['親子互動報告_封面.png', '親子互動報告_封底.png']
+for _fname in COVER_SRCS:
+    _src = Path(_fname)
+    if _src.exists():
+        _dst = Path('static') / _fname
+        if not _dst.exists():
+            shutil.copy(_src, _dst)
 
 # ── Model selection ──────────────────────────────────────────────────────────
 TEXT_MODEL    = os.getenv("GEMINI_TEXT_MODEL",    "gemini-2.5-pro")    # report writing
@@ -712,6 +736,11 @@ def stream(job_id: str):
 
 @app.route("/report/<job_id>")
 def report(job_id: str):
+    has_cover = (Path('static') / '親子互動報告_封面.png').exists()
+    has_backcover = (Path('static') / '親子互動報告_封底.png').exists()
+    cover_url    = '/static/親子互動報告_封面.png'   if has_cover     else None
+    backcover_url = '/static/親子互動報告_封底.png' if has_backcover else None
+
     # Check in-memory store first
     job = jobs.get(job_id)
     if job and job.get("status") == "completed":
@@ -724,6 +753,8 @@ def report(job_id: str):
             results=job["results"],
             image_mode=job.get("image_mode", "none"),
             generated_at=time.strftime("%Y年%m月%d日"),
+            cover_url=cover_url,
+            backcover_url=backcover_url,
         )
 
     # Fall back to disk
@@ -742,6 +773,8 @@ def report(job_id: str):
             results=saved["results"],
             image_mode=saved.get("image_mode", "none"),
             generated_at=time.strftime("%Y年%m月%d日"),
+            cover_url=cover_url,
+            backcover_url=backcover_url,
         )
 
     return "報告不存在或已過期", 404

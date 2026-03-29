@@ -514,7 +514,7 @@ body {
   border: 1px dashed var(--border);
 }
 
-/* ── Section Footer ── */
+/* ── Section Footer (screen only) ── */
 .section-footer {
   margin-top: 28px;
   padding-top: 14px;
@@ -530,42 +530,154 @@ body {
   background: var(--cream-2); padding: 2px 10px; border-radius: 10px;
 }
 
+/* Running head/foot — hidden on screen, shown in print via @media print */
+.print-running-head,
+.print-running-foot { display: none; }
+
+/* Section inner wrapper (used in print layout) */
+.section-inner { /* screen: no effect */ }
+
+/* ── TOC page ── */
+.page-toc { background: var(--cream); padding: 60px 70px; }
+.toc-title {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 1.6rem; font-weight: 700;
+  color: var(--text); margin-bottom: 8px;
+}
+.toc-subtitle {
+  font-size: .78rem; color: var(--text-3); margin-bottom: 32px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--cream-2);
+}
+.toc-ch-row {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: 'Noto Serif TC', serif;
+  font-size: .9rem; font-weight: 700;
+  color: var(--text); margin-top: 20px; margin-bottom: 6px;
+}
+.toc-ch-num { color: var(--green); min-width: 32px; }
+.toc-ch-dots { flex: 1; border-bottom: 1px dotted var(--border); margin: 0 8px 4px; }
+.toc-sec-row {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: .78rem; color: var(--text-2);
+  margin: 3px 0 3px 28px;
+}
+.toc-sec-dots { flex: 1; border-bottom: 1px dotted var(--cream-2); margin: 0 6px 3px; }
+.toc-sec-num { color: var(--text-3); min-width: 18px; }
+
+/* ── Cover / back-cover image pages ── */
+.page-cover-img {
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+}
+.page-cover-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 /* ══════════════════════════════════════════════════════════
-   Print Styles
+   Print Styles — A4, no browser headers/footers
 ══════════════════════════════════════════════════════════ */
 @media print {
-  @page {
-    size: A4;
-    margin: 18mm 20mm;
-  }
+  /* margin:0 removes browser-printed date, URL, page numbers */
+  @page { size: A4 portrait; margin: 0; }
 
-  body {
-    background: white;
-    font-size: 11pt;
-  }
+  body { background: white; font-size: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   .nav-bar { display: none !important; }
   .report-container { padding-top: 0; max-width: 100%; }
 
+  /* Every .page occupies exactly one A4 sheet */
   .page {
+    width: 210mm;
+    height: 297mm;
     box-shadow: none;
-    margin-bottom: 0;
+    margin: 0;
+    overflow: hidden;
     page-break-after: always;
     break-after: page;
+    position: relative;
+    box-sizing: border-box;
   }
-  .page:last-child { page-break-after: avoid; }
+  .page:last-child { page-break-after: avoid; break-after: avoid; }
 
-  .page-cover {
-    min-height: 100vh;
-    background: white !important;
+  /* Cover & back cover: full bleed image */
+  .page-cover-img { padding: 0; }
+  .page-cover-img img { width: 210mm; height: 297mm; object-fit: cover; display: block; }
+
+  .page-cover { padding: 28mm 22mm 18mm; background: white !important; }
+  .page-data-overview { padding: 16mm 22mm 14mm; }
+  .page-toc { padding: 20mm 22mm 16mm; }
+  .page-chapter-divider { padding: 0; min-height: 297mm; background: white !important; }
+
+  /* Section page: fixed layout, each section = exactly one A4 page */
+  .page-section {
+    padding: 0;            /* managed by inner divs */
   }
-  .page-chapter-divider { min-height: 100vh; background: white !important; }
-  .page-section { background: white; page-break-inside: avoid; }
   .page-section::before { display: none; }
   .section-ch-num { display: none; }
 
-  .section-illustration-float img { max-height: 220px; }
-  .section-illustration-bottom img { max-height: 200px; }
+  /* Running header inside section page */
+  .print-running-head {
+    display: flex !important;
+    height: 9mm;
+    padding: 0 18mm;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 0.4pt solid #DDD8CF;
+    background: white;
+  }
+  .prh-family { font-size: 7.5pt; color: #888; }
+  .prh-chapter { font-size: 7.5pt; color: #5B7B5B; font-weight: 500; }
+
+  /* Section inner layout */
+  .section-inner {
+    padding: 9mm 18mm 0mm;
+    height: calc(297mm - 9mm - 9mm); /* full page minus header and footer */
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .section-header { margin-bottom: 6mm; padding-bottom: 4mm; }
+  .section-breadcrumb { font-size: 7pt; margin-bottom: 2mm; }
+  .section-sec-label { font-size: 7.5pt; margin-bottom: 1mm; }
+  .section-title { font-size: 14pt; margin-bottom: 0; line-height: 1.35; }
+
+  /* Body text */
+  .section-body {
+    font-size: 10pt;
+    line-height: 1.82;
+    font-weight: 400 !important;  /* force regular weight */
+  }
+  .section-body p { margin-bottom: 3.5pt; font-weight: 400 !important; }
+  .section-body strong { font-weight: 600 !important; }
+  .section-body .list-item { font-weight: 400 !important; }
+
+  /* Image in print: below text, fixed height */
+  .section-illustration-float {
+    float: none !important;
+    width: 100% !important;
+    margin: 5mm 0 0 !important;
+    max-height: 48mm;
+  }
+  .section-illustration-float img { max-height: 44mm; }
+  .section-illustration-bottom { margin-top: 4mm; max-height: 48mm; }
+  .section-illustration-bottom img { max-height: 44mm; }
+
+  /* Running footer inside section page */
+  .print-running-foot {
+    display: flex !important;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 9mm;
+    padding: 0 18mm;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 0.4pt solid #DDD8CF;
+    background: white;
+  }
+  .prf-family { font-size: 7.5pt; color: #888; }
+  .prf-num { font-size: 7.5pt; color: #888; }
+
+  /* TOC */
+  .toc-title { font-size: 18pt; }
+  .toc-ch-row { font-size: 10pt; }
+  .toc-sec-row { font-size: 9pt; }
 
   h1, h2, h3 { page-break-after: avoid; }
   img { page-break-inside: avoid; }
@@ -585,7 +697,12 @@ body {
 
 <div class="report-container">
 
-<!-- ═══ COVER PAGE ═══ -->
+<!-- ═══ COVER PAGE (image if available, else styled cover) ═══ -->
+{% if cover_url %}
+<div class="page page-cover-img">
+  <img src="{{ cover_url }}" alt="封面">
+</div>
+{% else %}
 <div class="page page-cover">
   <div class="cover-deco-top"></div>
   <div class="cover-badge">FAMILY BRAINWAVE RESONANCE REPORT</div>
@@ -595,11 +712,8 @@ body {
     讓數字說話，讓愛被看見，讓關係在理解中深化
   </p>
   <div class="cover-divider"></div>
-
-  <!-- Family members -->
   <div class="cover-members">
-    {% for m in members %}
-    {% if m.present %}
+    {% for m in members %}{% if m.present %}
     <div class="member-chip {% if not m.data %}predicted{% endif %}">
       <div class="member-chip-icon {{ m.role }}">
         {% if m.role == 'father' %}👨{% elif m.role == 'mother' %}👩
@@ -610,14 +724,14 @@ body {
         <div class="member-chip-name">{{ m.name }}</div>
       </div>
     </div>
-    {% endif %}
-    {% endfor %}
+    {% endif %}{% endfor %}
   </div>
-
   <div class="cover-meta">
-    <strong>{{ family_name }}</strong> &nbsp;·&nbsp; {{ generated_at }} &nbsp;·&nbsp; 共 {{ chapters|length }} 章 {{ chapters|map(attribute='sections')|map('length')|sum }} 節
+    <strong>{{ family_name }}</strong> &nbsp;·&nbsp; {{ generated_at }} &nbsp;·&nbsp;
+    共 {{ chapters|length }} 章 {{ chapters|map(attribute='sections')|map('length')|sum }} 節
   </div>
 </div>
+{% endif %}
 
 <!-- ═══ DATA OVERVIEW PAGE ═══ -->
 <div class="page page-overview">
@@ -713,6 +827,29 @@ body {
   </div>
 </div>
 
+<!-- ═══ TABLE OF CONTENTS ═══ -->
+{% set ch_zh_toc = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三'] %}
+{% set sec_zh_toc = ['一','二','三','四'] %}
+<div class="page page-toc">
+  <div class="toc-title">目錄</div>
+  <div class="toc-subtitle">{{ family_name }} 親子腦波關係深度報告 &nbsp;·&nbsp; {{ generated_at }}</div>
+  {% for chapter in chapters %}
+  {% set ci = loop.index0 %}
+  <div class="toc-ch-row">
+    <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
+    <span>{{ chapter.title }}</span>
+    <span class="toc-ch-dots"></span>
+  </div>
+  {% for section in chapter.sections %}
+  <div class="toc-sec-row">
+    <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
+    <span>{{ section.title }}</span>
+    <span class="toc-sec-dots"></span>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
+
 <!-- ═══ CHAPTERS ═══ -->
 {% set ch_zh = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三'] %}
 {% set sec_zh = ['一','二','三','四'] %}
@@ -740,59 +877,81 @@ body {
 {% set result = results.get(key, {}) %}
 {% set text = result.get('text', '（此節內容生成中...）') %}
 {% set image_path = result.get('image_path') %}
+{% set sec_label = sec_zh[loop.index0] if loop.index0 < 4 else loop.index|string %}
 
 <div class="page page-section">
-  <!-- Chapter watermark number -->
+  <!-- Chapter watermark number (screen only) -->
   <div class="section-ch-num">{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}</div>
 
-  <div class="section-header">
-    <div class="section-breadcrumb">
-      第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章 &nbsp;/&nbsp;
-      <span>{{ chapter.title }}</span>
-    </div>
-    <div class="section-sec-label">第{{ sec_zh[loop.index0] }}節</div>
-    <h2 class="section-title">{{ section.title }}</h2>
+  <!-- Print running header: chapter title -->
+  <div class="print-running-head">
+    <span class="prh-family">{{ family_name }} 親子腦波關係深度報告</span>
+    <span class="prh-chapter">第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章 ／ {{ chapter.title }}</span>
   </div>
 
-  <div class="section-content">
-    {% if image_path %}
-    <!-- Image floats right when available -->
-    <div class="section-illustration-float">
-      <img src="{{ image_path }}" alt="{{ section.title }} 插圖" loading="lazy">
-      <div class="illustration-caption">AI 插圖 · {{ section.title }}</div>
+  <!-- Inner content wrapper (controls overflow in print) -->
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-breadcrumb">
+        第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章 &nbsp;/&nbsp;
+        <span>{{ chapter.title }}</span>
+      </div>
+      <div class="section-sec-label">第{{ sec_label }}節</div>
+      <h2 class="section-title">{{ section.title }}</h2>
     </div>
-    {% endif %}
 
-    <div class="section-body">
-      {% if text and text.strip() and text.strip() != '（此節內容生成中...）' %}
-        {% set paragraphs = text.split('\n') %}
-        {% for para in paragraphs %}
-          {% if para.strip() %}
-            {% set p = para.strip() %}
-            {# Numbered list items #}
-            {% if p[0].isdigit() and (p[1:2] == '.' or p[1:2] == '、') %}
-              <p class="list-item">{{ p|replace('**','<strong>',1)|replace('**','</strong>',1)|safe }}</p>
-            {% else %}
-              <p>{{ p|replace('**','<strong>')|replace('**','</strong>')|safe }}</p>
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-      {% else %}
-        <div class="section-pending">
-          ⏳ 此節內容尚未生成，請重新生成完整報告或使用「自訂章節」功能補充此節。
-        </div>
+    <div class="section-content">
+      {% if image_path %}
+      <div class="section-illustration-float">
+        <img src="{{ image_path }}" alt="{{ section.title }} 插圖" loading="lazy">
+        <div class="illustration-caption">AI 插圖 · {{ section.title }}</div>
+      </div>
       {% endif %}
-    </div>
-  </div>
 
+      <div class="section-body">
+        {% if text and text.strip() and text.strip() != '（此節內容生成中...）' %}
+          {% set paragraphs = text.split('\n') %}
+          {% for para in paragraphs %}
+            {% if para.strip() %}
+              {% set p = para.strip() %}
+              {% if p[0].isdigit() and (p[1:2] == '.' or p[1:2] == '、') %}
+                <p class="list-item">{{ p|md|safe }}</p>
+              {% else %}
+                <p>{{ p|md|safe }}</p>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="section-pending">
+            ⏳ 此節內容尚未生成，請重新生成完整報告或使用「自訂章節」功能補充此節。
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div><!-- /section-inner -->
+
+  <!-- Screen footer (hidden in print; print uses print-running-foot instead) -->
   <div class="section-footer">
     <div class="footer-family">{{ family_name }} 親子腦波關係報告</div>
     <div class="footer-num">{{ ch_idx + 1 }}.{{ section.num }}</div>
+  </div>
+
+  <!-- Print running footer -->
+  <div class="print-running-foot">
+    <span class="prf-family">{{ family_name }} 親子腦波關係深度報告</span>
+    <span class="prf-num">{{ ch_idx + 1 }}-{{ section.num }}</span>
   </div>
 </div>
 
 {% endfor %}
 {% endfor %}
+
+<!-- ═══ BACK COVER ═══ -->
+{% if backcover_url %}
+<div class="page page-cover-img">
+  <img src="{{ backcover_url }}" alt="封底">
+</div>
+{% endif %}
 
 </div><!-- /report-container -->
 
