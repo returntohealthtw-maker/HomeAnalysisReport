@@ -16,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
-app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB upload limit
+app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024  # 60 MB — base64 of a 40 MB image
 
 # ── Jinja2 custom filter: convert **bold** markdown to <strong> ──────────────
 def md_to_html(text: str) -> str:
@@ -689,7 +689,8 @@ def extract():
     if not data:
         size = request.content_length or 0
         print(f"[EXTRACT 400] JSON parse failed. Content-Length={size}, Content-Type={request.content_type}", flush=True)
-        return jsonify({"error": "請求格式錯誤，無法解析 JSON body（Content-Length={size}）"}), 400
+        msg = "圖片檔案過大，請先壓縮後再上傳（建議小於 8 MB）" if size > 18_000_000 else "請求格式錯誤，無法解析 JSON body"
+        return jsonify({"success": False, "error": "bad_request", "message": msg}), 400
 
     image_b64  = data.get("image_base64") or ""
     image_type = data.get("image_type") or "image/jpeg"

@@ -1201,11 +1201,12 @@ async function processImage(file, role) {
   showProcessing(role, true);
   const imgUrl = URL.createObjectURL(file);
   try {
-    const b64 = await fileToBase64(file);
+    // Compress + resize before upload to avoid oversized payloads (fixes 400 on large files)
+    const { b64, mime } = await compressImageForUpload(file);
     const res = await fetch('/extract', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ image_base64: b64, image_type: file.type })
+      body: JSON.stringify({ image_base64: b64, image_type: mime })
     });
     const json = await res.json();
 
@@ -1265,6 +1266,44 @@ function fileToBase64(file) {
     r.onload = () => res(r.result.split(',')[1]);
     r.onerror = rej;
     r.readAsDataURL(file);
+  });
+}
+
+/**
+ * Compress + resize an image file via canvas before uploading.
+ * - Max dimension: 1600px (enough for AI OCR, far less data)
+ * - JPEG quality: 0.82
+ * Falls back to raw base64 if canvas fails.
+ * Returns { b64: string, mime: 'image/jpeg' }
+ */
+function compressImageForUpload(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objUrl);
+      const MAX = 1600;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (Math.max(w, h) > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve({ b64: dataUrl.split(',')[1], mime: 'image/jpeg' });
+      } catch(e) {
+        // Canvas tainted or other error — fall back to raw file
+        fileToBase64(file).then(b64 => resolve({ b64, mime: file.type || 'image/jpeg' }));
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objUrl);
+      fileToBase64(file).then(b64 => resolve({ b64, mime: file.type || 'image/jpeg' }));
+    };
+    img.src = objUrl;
   });
 }
 
