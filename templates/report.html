@@ -194,6 +194,7 @@ body {
 /* ── Data Overview Page ── */
 .page-overview {
   padding: 60px;
+  background: var(--cream);
 }
 .overview-title {
   font-family: 'Noto Serif TC', serif;
@@ -543,10 +544,11 @@ body {
   padding: 60px 70px;
   display: flex; align-items: center; justify-content: center;
 }
+/* Ensure cream bg is printed (-webkit-print-color-adjust already set on body) */
 .page-wave-legend .wave-legend { max-width: 520px; width: 100%; margin: 0; }
 
 /* ── TOC page ── */
-.page-toc { background: var(--cream); padding: 60px 70px; }
+.page-toc, .page-toc-cont { background: var(--cream); padding: 60px 70px; }
 .toc-title {
   font-family: 'Noto Serif TC', serif;
   font-size: 1.6rem; font-weight: 700;
