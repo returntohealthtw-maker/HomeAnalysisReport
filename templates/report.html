@@ -487,9 +487,11 @@ body {
   font-size: .95rem;
   line-height: 1.95;
   color: var(--text-2);
+  font-weight: 400;
 }
 .section-body p { margin-bottom: .9em; }
-.section-body strong { color: var(--text); font-weight: 600; }
+/* No bold anywhere in body text — nuclear override */
+.section-body *, .section-body strong, .section-body b { color: inherit; font-weight: 400 !important; }
 .section-body .list-item {
   padding-left: 1.2em;
   text-indent: -1.2em;
@@ -573,12 +575,6 @@ body {
 }
 .toc-sec-dots { flex: 1; border-bottom: 1px dotted var(--cream-2); margin: 0 6px 3px; }
 .toc-sec-num { color: var(--text-3); min-width: 18px; }
-.toc-cont-header {
-  font-family: 'Noto Serif TC', serif;
-  font-size: 1rem; font-weight: 600; color: var(--text-3);
-  margin-bottom: 16px; padding-bottom: 12px;
-  border-bottom: 1px solid var(--cream-2);
-}
 
 /* ── Cover / back-cover image pages ── */
 .page-cover-img {
@@ -632,7 +628,7 @@ body {
     padding: 20mm 22mm 18mm;
   }
   .page-toc-cont {
-    padding-top: 20mm;
+    padding: 20mm 22mm 18mm;
   }
   .page-wave-legend {
     height: auto !important;
@@ -732,8 +728,8 @@ body {
     overflow: hidden;
   }
   .section-body p { margin-bottom: 4pt; font-weight: 400 !important; }
-  .section-body strong { font-weight: 600 !important; }
-  .section-body .list-item { font-weight: 400 !important; }
+  /* Nuclear: prevent any bold anywhere in body text */
+  .section-body *, .section-body strong, .section-body b, .section-body .list-item { font-weight: 400 !important; }
 
   .section-illustration-bottom { margin-top: 3mm; max-height: 50mm; overflow: hidden; }
   .section-illustration-bottom img { max-height: 46mm; }
@@ -943,7 +939,8 @@ body {
 <!-- TOC page 2: chapters 7+ (only rendered when chapters > toc_split) -->
 {% if chapters|length > toc_split %}
 <div class="page page-toc page-toc-cont">
-  <div class="toc-cont-header">目錄（續）</div>
+  <div class="toc-title">目錄（續）</div>
+  <div class="toc-subtitle">{{ family_name }} 親子腦波關係深度報告 &nbsp;·&nbsp; {{ generated_at }}</div>
   {% for chapter in chapters %}
   {% set ci = loop.index0 %}
   {% if ci >= toc_split %}
