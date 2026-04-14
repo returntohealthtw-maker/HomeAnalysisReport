@@ -364,6 +364,19 @@ CH_NUMS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
 SEC_NUMS = ["一", "二", "三", "四"]
 
 
+def _member_key_data(m: dict) -> str:
+    """Return a compact string of the 2-3 most notable brainwave values for a member."""
+    d = m.get("data") or {}
+    metrics = d.get("metrics") or {}
+    conc = d.get("concentration_pct", "?")
+    relax = d.get("relaxation_pct", "?")
+    # Pick the two most extreme (lowest) metrics as the focus areas
+    metric_items = [(k, v) for k, v in metrics.items() if isinstance(v, (int, float))]
+    metric_items.sort(key=lambda x: x[1])
+    focus = "、".join(f"{k}{v}%" for k, v in metric_items[:2]) if metric_items else "無數據"
+    return f"專注{conc}%、放鬆{relax}%；最需關注：{focus}"
+
+
 def get_call_name(m: dict) -> str:
     """Return the correct address form: '名字+爸爸/媽媽' for parents, just name for children."""
     name = (m.get("name") or "").strip()
@@ -481,39 +494,68 @@ def generate_section_text(
     is_last_chapter = (chapter.get("num") == 12)
 
     if is_last_chapter:
-        stage_weeks = {1: "第1～6週", 2: "第7～12週", 3: "第13～18週", 4: "第19～24週"}
-        weeks_label = stage_weeks.get(section["num"], "")
-        member_list = "、".join(get_call_name(m) for m in members if m.get("present"))
+        stage_map = {
+            1: ("第1～6週",  "急性修復與降壓期",  "奠基：建立安全感與基礎調節"),
+            2: ("第7～12週", "卸下鎧甲與解構期",  "深化：鬆動慣性模式與開放連結"),
+            3: ("第13～18週","重新分配角色與重塑期","整合：角色重整與新互動習慣"),
+            4: ("第19～24週","固化新模式與穩定期", "穩固：將改變內化為家庭文化"),
+        }
+        weeks_label, stage_theme, stage_goal = stage_map.get(section["num"], ("", "", ""))
+
+        # Build member list with call names for present members
+        present_members = [m for m in members if m.get("present")]
+        member_lines = "\n".join(
+            f"  {get_call_name(m)}（{m.get('role_zh','')}）：腦波關鍵數據 → {_member_key_data(m)}"
+            for m in present_members
+        )
+
         prompt = f"""以下是這個家庭的完整腦波量測數據：
 {family_data_str}
 {missing_note}
 {call_name_note}
 
-請為以下章節撰寫「家庭每週操練計畫」：
+本次參與成員的關鍵數據摘要：
+{member_lines}
+
+請為以下章節撰寫「逐週可執行操練計畫」：
 
 📌 第十二章《{chapter['title']}》
 📌 第{sec_zh}節《{section['title']}》
-本節涵蓋：{weeks_label}，共6週
+本階段：{weeks_label}　主題：{stage_theme}　目標：{stage_goal}
 
 ═══ 撰寫規格（嚴格遵守）═══
 
-【格式】以「每兩週」為單位，每個單元包含：
-  第X～X週主題（10字以內）：
-  ◆ {member_list.split('、')[0] if member_list else '爸爸'}：具體每天/每週要做的事（25字以內）
-  ◆ {member_list.split('、')[1] if '、' in member_list else '媽媽'}：具體每天/每週要做的事（25字以內）
-  ◆ 孩子：具體每天/每週要做的事（25字以內）
+【核心原則】這是一份「行動手冊」，不是心理分析——每一行都必須是家庭成員「今天/這週可以立刻執行」的具體行為。
 
-【字數】500～580字（繁體中文）
-【段落】先寫20～30字的本階段核心目標說明，再依序呈現每兩週的計畫
-【內容要求】
-  — 每個成員的任務必須根據其腦波數據量身訂做（引用具體指標）
-  — 任務要具體可執行：說明「做什麼、每次多長、一週幾次」
-  — 每週任務要有遞進感（第1～2週奠基 → 第3～4週深化 → 第5～6週整合）
-  — 家人之間的任務要能互相呼應與支持
+【輸出格式——嚴格照此結構，逐週列出全部6週】
 
-【格式禁止】絕對不使用 **粗體**（** 符號）、# 標題或任何 Markdown 格式——輸出純文字段落即可
+第一週　[本週主題，8字以內]
+◆ [成員稱謂]：[具體動作] [頻率/時長]，[觀察目標]
+◆ [成員稱謂]：[具體動作] [頻率/時長]，[觀察目標]
+◆ [成員稱謂]：[具體動作] [頻率/時長]，[觀察目標]
+家庭共同任務：[全家一起做的事，1句話]
 
-請直接輸出計畫內文（不重複標題，從第一個字開始）："""
+第二週　[本週主題]
+◆ … (同上格式)
+
+（依序完成第一週至第六週，共6個單元）
+
+【動作規格】每個◆任務必須包含：
+  做什麼（具體行為，如「腹式呼吸4秒吸6秒呼」，不是「練習放鬆」）
+  多久/幾次（如「每天睡前5分鐘」「每週三次各10分鐘」）
+  可觀察的微目標（如「本週能做到3次不中途中斷」）
+
+【數據連結】每個人的任務必須對應其最需改善的腦波指標（從上方數據摘要中選）
+
+【遞進邏輯】
+  第1～2週：建立最小可行習慣（門檻極低，確保做得到）
+  第3～4週：加深強度或加入互動元素
+  第5～6週：家人開始互相觀察並給予回饋
+
+【字數】650～780字（繁體中文，6週完整呈現，字數可略超過一般節次以確保完整性）
+【格式禁止】絕對不使用 **粗體**（** 符號）、# 標題或任何 Markdown 格式
+
+請直接輸出計畫內文（不重複章節標題，從「第一週」開始）："""
     else:
         prompt = f"""以下是這個家庭的完整腦波量測數據：
 {family_data_str}
