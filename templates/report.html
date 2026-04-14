@@ -575,6 +575,11 @@ body {
 }
 .toc-sec-dots { flex: 1; border-bottom: 1px dotted var(--cream-2); margin: 0 6px 3px; }
 .toc-sec-num { color: var(--text-3); min-width: 18px; }
+/* Keep each chapter title glued to its sections — no orphaned rows */
+.toc-ch-group {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
 
 /* ── Cover / back-cover image pages ── */
 .page-cover-img {
@@ -629,6 +634,11 @@ body {
   }
   .page-toc-cont {
     padding: 20mm 22mm 18mm;
+  }
+  /* Prevent chapter title being separated from its sections across pages */
+  .toc-ch-group {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
   .page-wave-legend {
     height: auto !important;
@@ -920,18 +930,20 @@ body {
   {% for chapter in chapters %}
   {% set ci = loop.index0 %}
   {% if ci < toc_split %}
-  <div class="toc-ch-row">
-    <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
-    <span>{{ chapter.title }}</span>
-    <span class="toc-ch-dots"></span>
+  <div class="toc-ch-group">
+    <div class="toc-ch-row">
+      <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
+      <span>{{ chapter.title }}</span>
+      <span class="toc-ch-dots"></span>
+    </div>
+    {% for section in chapter.sections %}
+    <div class="toc-sec-row">
+      <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
+      <span>{{ section.title }}</span>
+      <span class="toc-sec-dots"></span>
+    </div>
+    {% endfor %}
   </div>
-  {% for section in chapter.sections %}
-  <div class="toc-sec-row">
-    <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
-    <span>{{ section.title }}</span>
-    <span class="toc-sec-dots"></span>
-  </div>
-  {% endfor %}
   {% endif %}
   {% endfor %}
 </div>
@@ -944,18 +956,20 @@ body {
   {% for chapter in chapters %}
   {% set ci = loop.index0 %}
   {% if ci >= toc_split %}
-  <div class="toc-ch-row">
-    <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
-    <span>{{ chapter.title }}</span>
-    <span class="toc-ch-dots"></span>
+  <div class="toc-ch-group">
+    <div class="toc-ch-row">
+      <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
+      <span>{{ chapter.title }}</span>
+      <span class="toc-ch-dots"></span>
+    </div>
+    {% for section in chapter.sections %}
+    <div class="toc-sec-row">
+      <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
+      <span>{{ section.title }}</span>
+      <span class="toc-sec-dots"></span>
+    </div>
+    {% endfor %}
   </div>
-  {% for section in chapter.sections %}
-  <div class="toc-sec-row">
-    <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
-    <span>{{ section.title }}</span>
-    <span class="toc-sec-dots"></span>
-  </div>
-  {% endfor %}
   {% endif %}
   {% endfor %}
 </div>
