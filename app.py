@@ -104,6 +104,27 @@ def _get_response_text(response) -> str | None:
     return None
 
 
+def _collect_output_text(response) -> str | None:
+    """Collect all non-thinking text parts, joined in order. Never mixes thinking tokens into output."""
+    parts_text = []
+    if response.candidates:
+        for candidate in response.candidates:
+            if candidate.content and candidate.content.parts:
+                for part in candidate.content.parts:
+                    if getattr(part, "thought", False):
+                        continue
+                    if part.text:
+                        parts_text.append(part.text)
+    if parts_text:
+        return "".join(parts_text)
+    # Last resort: try response.text but strip thinking-like content before first {
+    if hasattr(response, "text") and response.text:
+        t = response.text
+        idx = t.find("{")
+        return t[idx:] if idx != -1 else t
+    return None
+
+
 def key_is_set() -> bool:
     load_dotenv(override=True)
     k = os.getenv("GEMINI_API_KEY", "").strip()
@@ -930,14 +951,16 @@ def extract():
 請確保所有數值皆為整數，若某數值在圖片中不清晰，請填入0。"""
 
     def _call_extract(use_json_mime: bool):
-        """Call Gemini once; returns parsed dict or raises."""
+        """Call Gemini once with thinking disabled; returns raw text or raises."""
         image_bytes = base64.b64decode(image_b64)
-        cfg = types.GenerateContentConfig(max_output_tokens=2048)
+        # Disable thinking entirely for OCR extraction — thinking tokens corrupt JSON output
+        cfg_kwargs = dict(
+            max_output_tokens=2048,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
         if use_json_mime:
-            cfg = types.GenerateContentConfig(
-                max_output_tokens=2048,
-                response_mime_type="application/json",
-            )
+            cfg_kwargs["response_mime_type"] = "application/json"
+        cfg = types.GenerateContentConfig(**cfg_kwargs)
         resp = get_client().models.generate_content(
             model=EXTRACT_MODEL,
             contents=[
@@ -946,10 +969,12 @@ def extract():
             ],
             config=cfg,
         )
-        raw = _get_response_text(resp)
+        # Collect ONLY non-thinking text parts to avoid mixing thinking tokens with JSON
+        raw = _collect_output_text(resp)
         if not raw:
             fr = resp.candidates[0].finish_reason if resp.candidates else "unknown"
             raise ValueError(f"Gemini 回傳空內容（finish_reason={fr}）")
+        print(f"[EXTRACT raw] len={len(raw)} preview={raw[:120]!r}", flush=True)
         return raw
 
     def _parse_json(raw: str) -> dict:
