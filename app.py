@@ -929,39 +929,68 @@ def extract():
 
 請確保所有數值皆為整數，若某數值在圖片中不清晰，請填入0。"""
 
-    try:
+    def _call_extract(use_json_mime: bool):
+        """Call Gemini once; returns parsed dict or raises."""
         image_bytes = base64.b64decode(image_b64)
-        # Use gemini-2.5-flash for extraction: faster, no heavy thinking overhead,
-        # avoids MAX_TOKENS issue caused by 2.5-pro's large thinking token usage.
-        response = get_client().models.generate_content(
+        cfg = types.GenerateContentConfig(max_output_tokens=2048)
+        if use_json_mime:
+            cfg = types.GenerateContentConfig(
+                max_output_tokens=2048,
+                response_mime_type="application/json",
+            )
+        resp = get_client().models.generate_content(
             model=EXTRACT_MODEL,
             contents=[
                 types.Part(inline_data=types.Blob(mime_type=image_type, data=image_bytes)),
                 extraction_prompt,
             ],
-            config=types.GenerateContentConfig(
-                max_output_tokens=2048,
-            ),
+            config=cfg,
         )
-
-        # Safely extract text from response (handle None / thinking-only responses)
-        raw_text = _get_response_text(response)
-        if not raw_text:
-            fr = response.candidates[0].finish_reason if response.candidates else "unknown"
+        raw = _get_response_text(resp)
+        if not raw:
+            fr = resp.candidates[0].finish_reason if resp.candidates else "unknown"
             raise ValueError(f"Gemini 回傳空內容（finish_reason={fr}）")
+        return raw
 
-        # Strip markdown code fences if model wrapped JSON in ```json ... ```
-        clean = raw_text.strip()
+    def _parse_json(raw: str) -> dict:
+        """Try multiple strategies to parse JSON from raw text."""
+        # Strategy 1: strip code fences then parse directly
+        clean = raw.strip()
         if clean.startswith("```"):
             clean = clean.split("\n", 1)[-1]
             clean = clean.rsplit("```", 1)[0].strip()
+        try:
+            return json.loads(clean)
+        except json.JSONDecodeError:
+            pass
+        # Strategy 2: regex — grab outermost { ... }
+        m = re.search(r'\{[\s\S]*\}', clean)
+        if m:
+            try:
+                return json.loads(m.group(0))
+            except json.JSONDecodeError:
+                pass
+        raise json.JSONDecodeError("No valid JSON found", clean, 0)
 
-        result = json.loads(clean)
+    try:
+        raw_text = None
+        try:
+            # First attempt: ask for JSON MIME type (most reliable)
+            raw_text = _call_extract(use_json_mime=True)
+            result = _parse_json(raw_text)
+        except json.JSONDecodeError:
+            print(f"[EXTRACT] JSON mime parse failed, retrying without mime hint. raw={str(raw_text)[:200]}", flush=True)
+            time.sleep(2)
+            # Second attempt: plain text, rely on prompt instructions
+            raw_text = _call_extract(use_json_mime=False)
+            result = _parse_json(raw_text)
+
+        print(f"[EXTRACT OK] keys={list(result.keys())}", flush=True)
         return jsonify({"success": True, "data": result})
 
     except json.JSONDecodeError as e:
-        raw = locals().get("raw_text", "N/A")
-        print(f"[EXTRACT JSON ERROR] {e} | raw: {str(raw)[:300]}")
+        raw = raw_text or "N/A"
+        print(f"[EXTRACT JSON ERROR] {e} | raw: {str(raw)[:300]}", flush=True)
         return jsonify({"error": "parse", "message": "圖片數據識別完成，但 JSON 解析失敗。請確認上傳的是腦波量測報告截圖。"}), 400
     except Exception as e:
         err_str  = str(e)
