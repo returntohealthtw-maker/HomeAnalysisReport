@@ -797,9 +797,48 @@ body {
   <div class="nav-title">🌿 {{ family_name }} 親子腦波關係深度報告</div>
   <div class="nav-actions">
     <a href="/" class="btn">← 返回首頁</a>
-    <button class="btn primary" onclick="window.print()">🖨 列印 / 儲存 PDF</button>
+    <button class="btn primary" id="btn-pdf" onclick="showPdfGuide()">⬇ 列印 / 儲存 PDF</button>
   </div>
 </nav>
+
+<!-- PDF Save Guide Modal -->
+<div id="pdf-guide-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px 36px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:'Noto Sans TC',sans-serif;">
+    <div style="font-size:1.3rem;font-weight:700;color:#3a5a3a;margin-bottom:6px;">儲存為 PDF</div>
+    <div style="font-size:.85rem;color:#888;margin-bottom:20px;">請依照以下步驟將報告存成 PDF 檔</div>
+    <ol style="font-size:.9rem;color:#444;line-height:2;padding-left:1.4em;margin:0 0 24px;">
+      <li>點擊下方「開啟列印視窗」按鈕</li>
+      <li>在列印視窗左上角「<strong>目標 / 印表機</strong>」欄位</li>
+      <li>選擇「<strong>另存為 PDF</strong>」或「<strong>Microsoft Print to PDF</strong>」</li>
+      <li>點擊「<strong>儲存</strong>」，選擇存檔位置即完成</li>
+    </ol>
+    <div style="background:#f5f7f0;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#5b7b5b;margin-bottom:24px;">
+      💡 建議使用 <strong>Chrome</strong> 或 <strong>Edge</strong> 瀏覽器以獲得最佳 PDF 排版效果
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closePdfGuide()" style="padding:9px 20px;border:1.5px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-size:.9rem;color:#666;">取消</button>
+      <button onclick="doPrint()" style="padding:9px 24px;border:none;border-radius:8px;background:#4a7c59;color:#fff;cursor:pointer;font-size:.9rem;font-weight:600;">開啟列印視窗</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showPdfGuide() {
+  const el = document.getElementById('pdf-guide-overlay');
+  el.style.display = 'flex';
+}
+function closePdfGuide() {
+  document.getElementById('pdf-guide-overlay').style.display = 'none';
+}
+function doPrint() {
+  closePdfGuide();
+  setTimeout(() => window.print(), 200);
+}
+// Close on backdrop click
+document.getElementById('pdf-guide-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closePdfGuide();
+});
+</script>
 
 <div class="report-container">
 
