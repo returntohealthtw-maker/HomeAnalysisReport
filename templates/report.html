@@ -978,56 +978,58 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 <!-- ═══ TABLE OF CONTENTS ═══ -->
 {% set ch_zh_toc = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三'] %}
 {% set sec_zh_toc = ['一','二','三','四'] %}
-{% set toc_split = 6 %}{# chapters 0-5 on page 1, rest on page 2 #}
+{% set toc_split  = 6  %}{# page 1: index 0–5  (chapters 1–6)  #}
+{% set toc_split2 = 10 %}{# page 2: index 6–9  (chapters 7–10) #}
+                          {# page 3: index 10+  (chapters 11+)  #}
 
-<!-- TOC page 1: chapters 1–6 -->
-<div class="page page-toc">
-  <div class="toc-title">目錄</div>
-  <div class="toc-subtitle">{{ family_name }} 親子腦波關係深度報告 &nbsp;·&nbsp; {{ generated_at }}</div>
-  {% for chapter in chapters %}
-  {% set ci = loop.index0 %}
-  {% if ci < toc_split %}
-  <div class="toc-ch-group">
-    <div class="toc-ch-row">
-      <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
-      <span>{{ chapter.title }}</span>
-      <span class="toc-ch-dots"></span>
-    </div>
-    {% for section in chapter.sections %}
-    <div class="toc-sec-row">
-      <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
-      <span>{{ section.title }}</span>
-      <span class="toc-sec-dots"></span>
-    </div>
-    {% endfor %}
+<!-- Reusable macro: render one chapter entry -->
+{% macro toc_chapter(ci, chapter) %}
+<div class="toc-ch-group">
+  <div class="toc-ch-row">
+    <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
+    <span>{{ chapter.title }}</span>
+    <span class="toc-ch-dots"></span>
   </div>
-  {% endif %}
+  {% for section in chapter.sections %}
+  <div class="toc-sec-row">
+    <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
+    <span>{{ section.title }}</span>
+    <span class="toc-sec-dots"></span>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+<!-- Reusable macro: TOC page header -->
+{% macro toc_header(title) %}
+  <div class="toc-title">{{ title }}</div>
+  <div class="toc-subtitle">{{ family_name }} 親子腦波關係深度報告 &nbsp;·&nbsp; {{ generated_at }}</div>
+{% endmacro %}
+
+<!-- TOC page 1: chapters 1–6 (index 0–5) -->
+<div class="page page-toc">
+  {{ toc_header('目錄') }}
+  {% for chapter in chapters %}{% set ci = loop.index0 %}
+  {% if ci < toc_split %}{{ toc_chapter(ci, chapter) }}{% endif %}
   {% endfor %}
 </div>
 
-<!-- TOC page 2: chapters 7+ (only rendered when chapters > toc_split) -->
+<!-- TOC page 2: chapters 7–10 (index 6–9) — only when > toc_split chapters -->
 {% if chapters|length > toc_split %}
 <div class="page page-toc page-toc-cont">
-  <div class="toc-title">目錄（續）</div>
-  <div class="toc-subtitle">{{ family_name }} 親子腦波關係深度報告 &nbsp;·&nbsp; {{ generated_at }}</div>
-  {% for chapter in chapters %}
-  {% set ci = loop.index0 %}
-  {% if ci >= toc_split %}
-  <div class="toc-ch-group">
-    <div class="toc-ch-row">
-      <span class="toc-ch-num">第{{ ch_zh_toc[ci] if ci < 13 else chapter.num }}章</span>
-      <span>{{ chapter.title }}</span>
-      <span class="toc-ch-dots"></span>
-    </div>
-    {% for section in chapter.sections %}
-    <div class="toc-sec-row">
-      <span class="toc-sec-num">{{ sec_zh_toc[loop.index0] if loop.index0 < 4 else loop.index }}</span>
-      <span>{{ section.title }}</span>
-      <span class="toc-sec-dots"></span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+  {{ toc_header('目錄（續）') }}
+  {% for chapter in chapters %}{% set ci = loop.index0 %}
+  {% if ci >= toc_split and ci < toc_split2 %}{{ toc_chapter(ci, chapter) }}{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- TOC page 3: chapters 11+ (index 10+) — only when > toc_split2 chapters -->
+{% if chapters|length > toc_split2 %}
+<div class="page page-toc page-toc-cont">
+  {{ toc_header('目錄（續）') }}
+  {% for chapter in chapters %}{% set ci = loop.index0 %}
+  {% if ci >= toc_split2 %}{{ toc_chapter(ci, chapter) }}{% endif %}
   {% endfor %}
 </div>
 {% endif %}
