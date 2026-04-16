@@ -1458,30 +1458,17 @@ function hideProgress() {
   document.getElementById('progress-overlay').classList.remove('visible');
 }
 
+// Pure polling — SSE removed entirely due to Railway HTTP/2 connection instability
 function trackProgress(jobId) {
-  let chaptersInited = false;
-  let retryCount = 0;
-  const MAX_RETRIES = 5;  // switch to polling faster — polling has no HTTP/2 timeout issue
-  let es = null;
+  pollStatus(jobId);
+}
 
-  function connect() {
-    if (es) { try { es.close(); } catch(e) {} }
-    es = new EventSource('/stream/' + jobId);
-
-    es.onmessage = function(e) {
-      if (e.data === '' || e.data.startsWith(':')) return; // ignore keep-alive comments
-      retryCount = 0; // reset on successful message
-      let d;
-      try { d = JSON.parse(e.data); } catch(err) { return; }
-      if (d.error) { es.close(); return; }
-
-      if (!chaptersInited && d.chapters_list && d.chapters_list.length) {
-        initChaptersList(d.chapters_list);
-        chaptersInited = true;
-      }
-
-      const pct  = d.progress || 0;
-      const done = d.completed_sections || 0;
+function pollStatus(jobId) {
+  fetch('/status/' + jobId)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => {
+      const pct   = d.progress || 0;
+      const done  = d.completed_sections || 0;
       const total = d.total_sections || 48;
 
       document.getElementById('prog-bar').style.width = pct + '%';
@@ -1489,63 +1476,24 @@ function trackProgress(jobId) {
       document.getElementById('prog-counts').textContent = `已完成 ${done} / ${total} 節`;
       document.getElementById('prog-current').textContent = d.current_section || '準備中...';
 
-      if (d.chapters_list) {
-        updateChapterList(d.chapters_list, d.current_chapter, done, total);
-      }
-
-      if (d.status === 'completed') {
-        es.close();
-        document.getElementById('prog-subtitle').textContent = '報告生成完成！正在跳轉...';
-        setTimeout(() => { window.location.href = '/report/' + jobId; }, 1200);
-      }
-    };
-
-    es.onerror = function() {
-      es.close();
-      retryCount++;
-      if (retryCount <= MAX_RETRIES) {
-        // Exponential back-off: 2s, 4s, 8s ... up to 30s
-        const delay = Math.min(2000 * Math.pow(1.5, retryCount - 1), 30000);
-        document.getElementById('prog-current').textContent =
-          `連線中斷，${Math.round(delay/1000)} 秒後重試（第 ${retryCount}/${MAX_RETRIES} 次）...`;
-        setTimeout(connect, delay);
-      } else {
-        // Give up SSE, fall back to polling
-        document.getElementById('prog-current').textContent = '切換為輪詢模式...';
-        setTimeout(() => pollStatus(jobId), 3000);
-      }
-    };
-  }
-
-  connect();
-}
-
-function pollStatus(jobId) {
-  fetch('/status/' + jobId)
-    .then(r => r.json())
-    .then(d => {
-      // Update UI from poll data exactly like SSE messages
-      const pct   = d.progress || 0;
-      const done  = d.completed_sections || 0;
-      const total = d.total_sections || 48;
-      document.getElementById('prog-bar').style.width = pct + '%';
-      document.getElementById('prog-pct').textContent = pct + '%';
-      document.getElementById('prog-counts').textContent = `已完成 ${done} / ${total} 節`;
-      document.getElementById('prog-current').textContent =
-        (d.current_section || '生成中…') + '　（輪詢模式）';
       if (d.chapters_list && d.chapters_list.length) {
         updateChapterList(d.chapters_list, d.current_chapter, done, total);
       }
+
       if (d.status === 'completed') {
         document.getElementById('prog-subtitle').textContent = '報告生成完成！正在跳轉...';
         setTimeout(() => { window.location.href = '/report/' + jobId; }, 1200);
       } else if (d.status === 'error') {
-        document.getElementById('prog-subtitle').textContent = '生成失敗，請返回重試。';
+        document.getElementById('prog-subtitle').textContent = '生成時發生錯誤，請返回首頁重試。';
+        document.getElementById('prog-current').textContent = d.error_message || '';
       } else {
         setTimeout(() => pollStatus(jobId), 3000);
       }
     })
-    .catch(() => setTimeout(() => pollStatus(jobId), 5000));
+    .catch(() => {
+      // Network hiccup — retry after 5s
+      setTimeout(() => pollStatus(jobId), 5000);
+    });
 }
 
 function initChaptersList(chapters) {

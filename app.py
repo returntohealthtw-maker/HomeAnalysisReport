@@ -1207,7 +1207,16 @@ def report(job_id: str):
 def status(job_id: str):
     job = jobs.get(job_id)
     if job:
-        return jsonify({"status": job["status"], "progress": job.get("progress", 0)})
+        return jsonify({
+            "status":             job["status"],
+            "progress":           job.get("progress", 0),
+            "completed_sections": job.get("completed_sections", 0),
+            "total_sections":     job.get("total_sections", 48),
+            "current_section":    job.get("current_section", ""),
+            "current_chapter":    job.get("current_chapter", ""),
+            "chapters_list":      job.get("chapters_list", []),
+            "error_message":      job.get("error_message", ""),
+        })
     if (REPORTS_DIR / f"{job_id}.json").exists():
         return jsonify({"status": "completed", "progress": 100})
     return jsonify({"error": "Not found"}), 404
