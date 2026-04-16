@@ -424,20 +424,21 @@ def get_call_name(m: dict) -> str:
 
 
 def fix_honorifics(text: str, members: list) -> str:
-    """Replace any full-name or wrong-suffix variants with the correct given-name call form."""
+    """Replace wrong-suffix variants with the correct given-name call form.
+    Only replaces name+suffix patterns — never bare names, to prevent double-suffix bugs."""
     for m in members:
         name = (m.get("name") or "").strip()
         if not name:
             continue
         correct = get_call_name(m)
         given = _given_name(name)
-        # All patterns that might appear: full name / given name × all suffixes
-        wrong_suffixes = ["先生", "女士", "爸爸", "媽媽", ""]
+        # Only replace name+explicit-suffix patterns (no bare name replacement)
+        wrong_suffixes = ["先生", "女士", "爸爸", "媽媽"]
         candidates = set()
         for n in ([name, given] if name != given else [name]):
             for sfx in wrong_suffixes:
-                w = f"{n}{sfx}".strip()
-                if w and w != correct:
+                w = f"{n}{sfx}"
+                if w != correct:
                     candidates.add(w)
         # Replace longest patterns first to avoid partial replacements
         for wrong in sorted(candidates, key=len, reverse=True):

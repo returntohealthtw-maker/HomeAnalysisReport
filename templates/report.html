@@ -566,7 +566,11 @@ body {
 .page-wave-legend .wave-legend { max-width: 520px; width: 100%; margin: 0; }
 
 /* ── TOC page ── */
-.page-toc, .page-toc-cont { background: var(--cream); padding: 60px 70px; }
+.page-toc, .page-toc-cont {
+  background: var(--cream);
+  padding: 60px 70px;
+  min-height: 1050px;
+}
 .toc-title {
   font-family: 'Noto Serif TC', serif;
   font-size: 1.6rem; font-weight: 700;
@@ -643,13 +647,15 @@ body {
     overflow: visible !important;
     padding: 16mm 22mm 20mm;
   }
-  .page-toc {
+  .page-toc,
+  .page-toc-cont {
     height: auto !important;
+    min-height: 297mm !important;
     overflow: visible !important;
     padding: 20mm 22mm 18mm;
-  }
-  .page-toc-cont {
-    padding: 20mm 22mm 18mm;
+    background: var(--cream) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   /* Prevent chapter title being separated from its sections across pages */
   .toc-ch-group {
@@ -978,9 +984,9 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 <!-- ═══ TABLE OF CONTENTS ═══ -->
 {% set ch_zh_toc = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三'] %}
 {% set sec_zh_toc = ['一','二','三','四'] %}
-{% set toc_split  = 6  %}{# page 1: index 0–5  (chapters 1–6)  #}
-{% set toc_split2 = 10 %}{# page 2: index 6–9  (chapters 7–10) #}
-                          {# page 3: index 10+  (chapters 11+)  #}
+{% set toc_split  = 6  %}{# page 1: index 0–5  (chapters 1–6)   #}
+{% set toc_split2 = 12 %}{# page 2: index 6–11 (chapters 7–12)  #}
+                          {# page 3: index 12+  (chapter  13+)   #}
 
 <!-- Reusable macro: render one chapter entry -->
 {% macro toc_chapter(ci, chapter) %}
