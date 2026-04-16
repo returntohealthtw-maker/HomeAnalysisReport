@@ -65,7 +65,7 @@ for _fname in COVER_SRCS:
             shutil.copy(_src, _dst)
 
 # ── Model selection ──────────────────────────────────────────────────────────
-TEXT_MODEL    = os.getenv("GEMINI_TEXT_MODEL",    "gemini-2.5-flash")  # report writing
+TEXT_MODEL    = os.getenv("GEMINI_TEXT_MODEL",    "gemini-2.5-pro")    # report writing
 EXTRACT_MODEL = os.getenv("GEMINI_EXTRACT_MODEL", "gemini-2.5-flash")  # image OCR (no heavy thinking)
 IMAGE_MODEL   = os.getenv("GEMINI_IMAGE_MODEL",   "gemini-2.5-flash-image")  # illustration
 
