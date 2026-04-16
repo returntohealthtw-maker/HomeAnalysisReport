@@ -496,7 +496,7 @@ def build_chapters(members: list) -> list:
 # AI generation functions
 # ─────────────────────────────────────────────────────────────────────────────
 def generate_section_text(
-    family_data_str: str, chapter: dict, section: dict, members: list, retries: int = 3
+    family_data_str: str, chapter: dict, section: dict, members: list, retries: int = 5
 ) -> str:
     ch_zh = ch_num_to_zh(chapter["num"])
     sec_zh = SEC_NUMS[section["num"] - 1]
@@ -697,20 +697,29 @@ def generate_section_text(
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
                     temperature=0.78,
-                    max_output_tokens=8192,  # large budget for 2.5-pro thinking + output
+                    max_output_tokens=8192,
                 ),
             )
             text = _get_response_text(response)
             if not text:
                 raise ValueError(f"Empty response (finish_reason={response.candidates[0].finish_reason if response.candidates else 'unknown'})")
             text = text.strip()
-            # Post-process: ensure correct honorifics (replace 先生/女士 with 爸爸/媽媽)
             text = fix_honorifics(text, members)
             return text
         except Exception as e:
+            err_str = str(e)
+            is_503 = "503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str
+            is_429 = "429" in err_str or "RATE_LIMIT" in err_str or "quota" in err_str.lower()
             if attempt < retries - 1:
-                time.sleep(5 * (attempt + 1))
+                # 503 / 429 need much longer waits; other errors get shorter backoff
+                if is_503 or is_429:
+                    wait = 30 * (attempt + 1)   # 30s, 60s, 90s …
+                else:
+                    wait = 8 * (attempt + 1)    # 8s, 16s, 24s …
+                print(f"[TEXT RETRY {attempt+1}/{retries}] {type(e).__name__}: {err_str[:120]} — sleeping {wait}s", flush=True)
+                time.sleep(wait)
             else:
+                print(f"[TEXT FAIL] all {retries} attempts exhausted: {err_str[:200]}", flush=True)
                 return f"（此節內容暫時無法生成，請稍後重試。錯誤訊息：{e}）"
 
 
@@ -822,6 +831,9 @@ def run_generation(job_id: str, members: list, image_mode: str, family_name: str
 
             text = generate_section_text(family_data_str, chapter, section, members)
 
+            # Cooldown between sections to avoid 503 overload on rapid consecutive calls
+            time.sleep(5)
+
             image_path = None
             if image_mode == "full":
                 image_path = generate_section_image(
@@ -829,7 +841,7 @@ def run_generation(job_id: str, members: list, image_mode: str, family_name: str
                 )
                 # Brief pause after image gen to respect API rate limits
                 if image_path:
-                    time.sleep(3)
+                    time.sleep(4)
 
             job["results"][key] = {
                 "text": text,
