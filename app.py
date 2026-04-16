@@ -831,8 +831,8 @@ def run_generation(job_id: str, members: list, image_mode: str, family_name: str
 
             text = generate_section_text(family_data_str, chapter, section, members)
 
-            # Cooldown between sections to avoid 503 overload on rapid consecutive calls
-            time.sleep(5)
+            # Brief cooldown between sections to avoid 503 bursts
+            time.sleep(2)
 
             image_path = None
             if image_mode == "full":
@@ -1116,6 +1116,9 @@ def stream(job_id: str):
     def event_gen():
         deadline = time.time() + 3600  # 1-hour timeout
         last_completed = -1
+        last_ping = time.time()
+        PING_INTERVAL = 15  # send keep-alive every 15s to prevent Railway HTTP/2 timeout
+
         while time.time() < deadline:
             job = jobs.get(job_id)
             if not job:
@@ -1127,6 +1130,7 @@ def stream(job_id: str):
 
             if cur_completed != last_completed or status in ("completed", "error"):
                 last_completed = cur_completed
+                last_ping = time.time()
                 payload = {
                     "status": status,
                     "progress": job.get("progress", 0),
@@ -1137,6 +1141,10 @@ def stream(job_id: str):
                     "chapters_list": job.get("chapters_list", []),
                 }
                 yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            elif time.time() - last_ping >= PING_INTERVAL:
+                # Keep-alive comment — prevents Railway/proxy from closing idle HTTP/2 connection
+                yield ": ping\n\n"
+                last_ping = time.time()
 
             if status in ("completed", "error"):
                 return

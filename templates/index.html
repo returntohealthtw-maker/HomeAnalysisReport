@@ -1461,7 +1461,7 @@ function hideProgress() {
 function trackProgress(jobId) {
   let chaptersInited = false;
   let retryCount = 0;
-  const MAX_RETRIES = 10;
+  const MAX_RETRIES = 5;  // switch to polling faster — polling has no HTTP/2 timeout issue
   let es = null;
 
   function connect() {
@@ -1469,6 +1469,7 @@ function trackProgress(jobId) {
     es = new EventSource('/stream/' + jobId);
 
     es.onmessage = function(e) {
+      if (e.data === '' || e.data.startsWith(':')) return; // ignore keep-alive comments
       retryCount = 0; // reset on successful message
       let d;
       try { d = JSON.parse(e.data); } catch(err) { return; }
@@ -1523,12 +1524,28 @@ function pollStatus(jobId) {
   fetch('/status/' + jobId)
     .then(r => r.json())
     .then(d => {
-      if (d.status === 'completed') {
-        window.location.href = '/report/' + jobId;
-      } else {
-        setTimeout(() => pollStatus(jobId), 4000);
+      // Update UI from poll data exactly like SSE messages
+      const pct   = d.progress || 0;
+      const done  = d.completed_sections || 0;
+      const total = d.total_sections || 48;
+      document.getElementById('prog-bar').style.width = pct + '%';
+      document.getElementById('prog-pct').textContent = pct + '%';
+      document.getElementById('prog-counts').textContent = `已完成 ${done} / ${total} 節`;
+      document.getElementById('prog-current').textContent =
+        (d.current_section || '生成中…') + '　（輪詢模式）';
+      if (d.chapters_list && d.chapters_list.length) {
+        updateChapterList(d.chapters_list, d.current_chapter, done, total);
       }
-    });
+      if (d.status === 'completed') {
+        document.getElementById('prog-subtitle').textContent = '報告生成完成！正在跳轉...';
+        setTimeout(() => { window.location.href = '/report/' + jobId; }, 1200);
+      } else if (d.status === 'error') {
+        document.getElementById('prog-subtitle').textContent = '生成失敗，請返回重試。';
+      } else {
+        setTimeout(() => pollStatus(jobId), 3000);
+      }
+    })
+    .catch(() => setTimeout(() => pollStatus(jobId), 5000));
 }
 
 function initChaptersList(chapters) {
