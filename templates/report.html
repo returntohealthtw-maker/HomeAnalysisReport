@@ -684,6 +684,16 @@ body {
     overflow: hidden;
     padding: 0;
   }
+  /* ── Chapter 12: free-flow sections (no height cap) ── */
+  .page-section-free {
+    height: auto !important;
+    min-height: 297mm !important;
+    overflow: visible !important;
+  }
+  .page-section-free .section-inner {
+    height: auto !important;
+    overflow: visible !important;
+  }
   .page-section::before { display: none; }
   .section-ch-num { display: none; }
 
@@ -1069,7 +1079,7 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 {% set image_path = result.get('image_path') %}
 {% set sec_label = sec_zh[loop.index0] if loop.index0 < 4 else loop.index|string %}
 
-<div class="page page-section">
+<div class="page page-section{% if chapter.num == 12 %} page-section-free{% endif %}">
   <!-- Chapter watermark number (screen only) -->
   <div class="section-ch-num">{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}</div>
 
@@ -1096,8 +1106,9 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 
       <div class="section-body">
         {% if text and text.strip() and text.strip() != '（此節內容生成中...）' %}
-          {# When there's an illustration, truncate at last sentence end to stay on one page #}
-          {% if image_path and image_mode == 'full' %}
+          {# When there's an illustration, truncate at last sentence end to stay on one page.
+             Chapter 12 is exempt — it is allowed to flow across multiple pages. #}
+          {% if image_path and image_mode == 'full' and chapter.num != 12 %}
             {% set display_text = text|truncate_sentence(720) %}
           {% else %}
             {% set display_text = text %}
