@@ -388,6 +388,20 @@ body {
   /* Natural height - no min-height constraint */
 }
 
+/* ── Chapter 12: fill full page height on screen so background/footer reach bottom ── */
+.page-section.page-section-free {
+  overflow: visible !important;
+  min-height: 1050px;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.page-section.page-section-free > .section-inner {
+  flex: 1 !important;
+}
+.page-section.page-section-free > .section-footer {
+  margin-top: auto !important;
+}
+
 /* Left accent bar */
 .page-section::before {
   content: '';
@@ -684,21 +698,43 @@ body {
     overflow: hidden;
     padding: 0;
   }
-  /* ── Chapter 12: free-flow sections (no height cap) ── */
+  /* ── Chapter 12: CSS-table layout → header/footer repeat on every physical page ── */
   .page-section-free {
+    display: table !important;
+    width: 210mm !important;
     height: auto !important;
-    min-height: 297mm !important;
     overflow: visible !important;
+    table-layout: fixed !important;
+    -webkit-box-decoration-break: clone !important;
+    box-decoration-break: clone !important;
   }
-  .page-section-free .section-inner {
+  .page-section-free > .print-running-head {
+    display: table-header-group !important;
+    background: white !important;
+  }
+  .page-section-free > .section-inner {
+    display: table-row-group !important;
     height: auto !important;
     overflow: visible !important;
+    padding: 7mm 18mm 5mm !important;
+  }
+  .page-section-free > .print-running-foot {
+    display: table-footer-group !important;
+    position: static !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    background: white !important;
   }
   .page-section::before { display: none; }
   .section-ch-num { display: none; }
 
   /* Running header inside section page */
   .print-running-head {
+    background: white;
+    flex-shrink: 0;
+  }
+  .prh-inner {
     display: flex !important;
     height: 9mm;
     padding: 0 18mm;
@@ -706,7 +742,7 @@ body {
     justify-content: space-between;
     border-bottom: 0.4pt solid #DDD8CF;
     background: white;
-    flex-shrink: 0;
+    box-sizing: border-box;
   }
   .prh-family { font-size: 7.5pt; color: #888; }
   .prh-chapter { font-size: 7.5pt; color: #5B7B5B; font-weight: 500; }
@@ -783,15 +819,19 @@ body {
 
   /* Running footer inside section page */
   .print-running-foot {
-    display: flex !important;
     position: absolute;
     bottom: 0; left: 0; right: 0;
+    background: white;
+  }
+  .prf-inner {
+    display: flex !important;
     height: 9mm;
     padding: 0 18mm;
     align-items: center;
     justify-content: space-between;
     border-top: 0.4pt solid #DDD8CF;
     background: white;
+    box-sizing: border-box;
   }
   .prf-family { font-size: 7.5pt; color: #888; }
   .prf-num { font-size: 7.5pt; color: #888; }
@@ -1084,10 +1124,10 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
   <div class="section-ch-num">{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}</div>
 
   <!-- Print running header: chapter title -->
-  <div class="print-running-head">
+  <div class="print-running-head"><div class="prh-inner">
     <span class="prh-family">{{ family_name }} 親子腦波關係深度報告</span>
     <span class="prh-chapter">第{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}章 ／ {{ chapter.title }}</span>
-  </div>
+  </div></div>
 
   <!-- Inner content wrapper (controls overflow in print) -->
   <div class="section-inner">
@@ -1146,10 +1186,10 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
   </div>
 
   <!-- Print running footer -->
-  <div class="print-running-foot">
+  <div class="print-running-foot"><div class="prf-inner">
     <span class="prf-family">{{ family_name }} 親子腦波關係深度報告</span>
     <span class="prf-num">{{ ch_idx + 1 }}-{{ section.num }}</span>
-  </div>
+  </div></div>
 </div>
 
 {% endfor %}
