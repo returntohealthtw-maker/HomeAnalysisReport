@@ -507,17 +507,11 @@ body {
 /* No bold anywhere in body text — nuclear override */
 .section-body *, .section-body strong, .section-body b { color: inherit; font-weight: 400 !important; }
 .section-body .list-item {
-  padding-left: 1.2em;
-  text-indent: -1.2em;
+  padding-left: 1.4em;
+  text-indent: -1.4em;
   margin-bottom: .4em;
 }
-.section-body .list-item::before {
-  content: '◆';
-  font-size: .6em;
-  color: var(--green);
-  margin-right: .5em;
-  vertical-align: middle;
-}
+/* No ::before — the ◆ character is already in the AI-generated text */
 /* Weekly plan labels (第X週) */
 .section-body .week-label {
   font-family: 'Noto Serif TC', serif;
@@ -698,39 +692,26 @@ body {
     overflow: hidden;
     padding: 0;
   }
-  /* ── Chapter 12: CSS-table layout → header/footer repeat on every physical page ── */
+  /* ── Chapter 12: free-flow, content may span multiple pages ── */
   .page-section-free {
-    display: table !important;
-    width: 210mm !important;
     height: auto !important;
+    min-height: 297mm !important;
     overflow: visible !important;
-    table-layout: fixed !important;
+    display: block !important;
     -webkit-box-decoration-break: clone !important;
     box-decoration-break: clone !important;
-  }
-  .page-section-free > .print-running-head {
-    display: table-header-group !important;
-    background: white !important;
+    padding-bottom: 12mm !important; /* room for absolute footer */
   }
   .page-section-free > .section-inner {
-    display: table-row-group !important;
     height: auto !important;
     overflow: visible !important;
-    padding: 7mm 18mm 5mm !important;
-  }
-  .page-section-free > .print-running-foot {
-    display: table-footer-group !important;
-    position: static !important;
-    bottom: auto !important;
-    left: auto !important;
-    right: auto !important;
-    background: white !important;
   }
   .page-section::before { display: none; }
   .section-ch-num { display: none; }
 
   /* Running header inside section page */
   .print-running-head {
+    display: block !important;   /* override screen display:none */
     background: white;
     flex-shrink: 0;
   }
@@ -819,6 +800,7 @@ body {
 
   /* Running footer inside section page */
   .print-running-foot {
+    display: block !important;   /* override screen display:none */
     position: absolute;
     bottom: 0; left: 0; right: 0;
     background: white;
