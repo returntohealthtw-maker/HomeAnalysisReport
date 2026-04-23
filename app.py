@@ -55,6 +55,71 @@ def truncate_at_sentence(text: str, max_chars: int = 720) -> str:
 
 app.jinja_env.filters['truncate_sentence'] = truncate_at_sentence
 
+
+def split_chapter12_into_pages(text: str, weeks_per_page: int = 2) -> list[list[str]]:
+    """Split chapter-12 weekly-plan text into page-sized chunks.
+
+    Chapter 12 text is structured as:
+        <optional intro paragraphs>
+        第一週  <title>
+        ◆ ...
+        家庭共同任務: ...
+        第二週  <title>
+        ...
+
+    Each physical A4 page holds `weeks_per_page` week blocks.  The first page
+    additionally carries any intro paragraphs that appear before 第一週.
+
+    Returns a list of page chunks; each chunk is a list of raw text lines
+    (empty lines dropped) ready for the template to render as paragraphs.
+    """
+    if not text:
+        return []
+
+    lines = text.split('\n')
+
+    # 1. Partition lines into (optional intro block) + list of week blocks
+    intro: list[str] = []
+    weeks: list[list[str]] = []
+    current: list[str] | None = None
+
+    def _is_week_label(s: str) -> bool:
+        s = s.strip()
+        # "第一週", "第二週" …  (supports both Chinese numerals and digits)
+        return len(s) >= 3 and s.startswith('第') and '週' in s[:5]
+
+    for raw in lines:
+        if _is_week_label(raw):
+            if current is not None:
+                weeks.append(current)
+            current = [raw]
+        else:
+            if current is not None:
+                current.append(raw)
+            elif raw.strip():
+                intro.append(raw)
+    if current is not None:
+        weeks.append(current)
+
+    # 2. If no week markers were detected, fall back to a single-page layout.
+    if not weeks:
+        return [[ln for ln in lines if ln.strip()]]
+
+    # 3. Group every `weeks_per_page` week blocks into one page chunk.
+    pages: list[list[str]] = []
+    for i in range(0, len(weeks), weeks_per_page):
+        chunk: list[str] = []
+        if i == 0 and intro:
+            chunk.extend(intro)
+        for week_block in weeks[i:i + weeks_per_page]:
+            chunk.extend(week_block)
+        # Drop blank lines; template handles paragraphing itself.
+        pages.append([ln for ln in chunk if ln.strip()])
+    return pages
+
+
+app.jinja_env.filters['split_ch12_pages'] = split_chapter12_into_pages
+
 # ── Copy cover/back-cover images to static so they're web-accessible ─────────
 COVER_SRCS = ['親子互動報告_封面.png', '親子互動報告_封底.png']
 for _fname in COVER_SRCS:
@@ -528,11 +593,15 @@ def generate_section_text(
         + absent_note
     )
 
-    # Special prompt for chapter 11 (未來風險防範與警訊應對)
-    is_risk_chapter = (chapter.get("num") == 11)
+    # Special prompt for the risk chapter (未來風險防範與警訊應對).
+    # Use title, not num, because inserting the child2 chapter renumbers later chapters
+    # (risk chapter becomes num 12 and weekly-plan chapter becomes num 13 when a second
+    # child is present).
+    is_risk_chapter = (chapter.get("title") == "未來風險防範與警訊應對")
 
-    # Special prompt for the last chapter (六個月家庭重塑計畫, chapter 12)
-    is_last_chapter = (chapter.get("num") == 12)
+    # Special prompt for the last chapter (六個月家庭重塑計畫：每週操練與調整藍圖).
+    # Same renumbering caveat as above — match by title, not num.
+    is_last_chapter = (chapter.get("title") == "六個月家庭重塑計畫：每週操練與調整藍圖")
 
     if is_risk_chapter:
         prompt = f"""以下是這個家庭的完整腦波量測數據：

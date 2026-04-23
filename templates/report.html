@@ -388,20 +388,6 @@ body {
   /* Natural height - no min-height constraint */
 }
 
-/* ── Chapter 12: fill full page height on screen so background/footer reach bottom ── */
-.page-section.page-section-free {
-  overflow: visible !important;
-  min-height: 1050px;
-  display: flex !important;
-  flex-direction: column !important;
-}
-.page-section.page-section-free > .section-inner {
-  flex: 1 !important;
-}
-.page-section.page-section-free > .section-footer {
-  margin-top: auto !important;
-}
-
 /* Left accent bar */
 .page-section::before {
   content: '';
@@ -623,7 +609,10 @@ body {
   /* margin:0 removes browser-printed date, URL, page numbers */
   @page { size: A4 portrait; margin: 0; }
 
-  body { background: white; font-size: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Cream body background: safety net for any area on a .page that does not
+     fully cover the physical sheet (e.g. last page of a multi-page flow).
+     Opaque-background pages (cover, chapter divider, etc.) cover this anyway. */
+  body { background: var(--cream); font-size: 10pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   .nav-bar { display: none !important; }
   .report-container { padding-top: 0; max-width: 100%; }
@@ -691,20 +680,6 @@ body {
     height: 297mm;
     overflow: hidden;
     padding: 0;
-  }
-  /* ── Chapter 12: free-flow, content may span multiple pages ── */
-  .page-section-free {
-    height: auto !important;
-    min-height: 297mm !important;
-    overflow: visible !important;
-    display: block !important;
-    -webkit-box-decoration-break: clone !important;
-    box-decoration-break: clone !important;
-    padding-bottom: 12mm !important; /* room for absolute footer */
-  }
-  .page-section-free > .section-inner {
-    height: auto !important;
-    overflow: visible !important;
   }
   .page-section::before { display: none; }
   .section-ch-num { display: none; }
@@ -1101,7 +1076,31 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 {% set image_path = result.get('image_path') %}
 {% set sec_label = sec_zh[loop.index0] if loop.index0 < 4 else loop.index|string %}
 
-<div class="page page-section{% if chapter.num == 12 %} page-section-free{% endif %}">
+{# ── Decide how this section is paginated ──────────────────────────────
+   The weekly-plan chapter ("六個月家庭重塑計畫…") is split into multiple
+   standalone A4 pages so that every physical page has its own header /
+   footer / full-bleed cream background.  All other chapters stay as one page.
+
+   Match by title, not by num — when a second child is present the child2
+   chapter is inserted and all later chapters shift up by one (weekly-plan
+   becomes num 13 instead of 12).                                        #}
+{% set is_weekly_plan_chapter = (chapter.title == "六個月家庭重塑計畫：每週操練與調整藍圖") %}
+{% if is_weekly_plan_chapter and text and text.strip() and text.strip() != '（此節內容生成中...）' %}
+  {% set page_chunks = text|split_ch12_pages(2) %}
+{% else %}
+  {% if image_path and image_mode == 'full' %}
+    {% set display_text = text|truncate_sentence(720) if text else '' %}
+  {% else %}
+    {% set display_text = text if text else '' %}
+  {% endif %}
+  {% set page_chunks = [display_text.split('\n')] %}
+{% endif %}
+
+{% for chunk in page_chunks %}
+{% set is_first_page = loop.first %}
+{% set is_last_page  = loop.last %}
+{% set chunk_idx     = loop.index0 %}
+<div class="page page-section">
   <!-- Chapter watermark number (screen only) -->
   <div class="section-ch-num">{{ ch_zh[ch_idx] if ch_idx < 13 else chapter.num }}</div>
 
@@ -1114,12 +1113,12 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
   <!-- Inner content wrapper (controls overflow in print) -->
   <div class="section-inner">
     <div class="section-header">
-      <div class="section-sec-label">第{{ sec_label }}節</div>
+      <div class="section-sec-label">第{{ sec_label }}節{% if is_weekly_plan_chapter and not is_first_page %}（續）{% endif %}</div>
       <h2 class="section-title">{{ section.title }}</h2>
     </div>
 
     <div class="section-content">
-      {% if image_path %}
+      {% if image_path and is_first_page %}
       <div class="section-illustration-float">
         <img src="{{ image_path }}" alt="{{ section.title }} 插圖" loading="lazy">
         <div class="illustration-caption">AI 插圖 · {{ section.title }}</div>
@@ -1128,15 +1127,7 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 
       <div class="section-body">
         {% if text and text.strip() and text.strip() != '（此節內容生成中...）' %}
-          {# When there's an illustration, truncate at last sentence end to stay on one page.
-             Chapter 12 is exempt — it is allowed to flow across multiple pages. #}
-          {% if image_path and image_mode == 'full' and chapter.num != 12 %}
-            {% set display_text = text|truncate_sentence(720) %}
-          {% else %}
-            {% set display_text = text %}
-          {% endif %}
-          {% set paragraphs = display_text.split('\n') %}
-          {% for para in paragraphs %}
+          {% for para in chunk %}
             {% if para.strip() %}
               {% set p = para.strip() %}
               {% if p[0].isdigit() and (p[1:2] == '.' or p[1:2] == '、') %}
@@ -1164,15 +1155,16 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
   <!-- Screen footer (hidden in print; print uses print-running-foot instead) -->
   <div class="section-footer">
     <div class="footer-family">{{ family_name }} 親子腦波關係報告</div>
-    <div class="footer-num">{{ ch_idx + 1 }}.{{ section.num }}</div>
+    <div class="footer-num">{{ ch_idx + 1 }}.{{ section.num }}{% if page_chunks|length > 1 %}（{{ chunk_idx + 1 }}/{{ page_chunks|length }}）{% endif %}</div>
   </div>
 
   <!-- Print running footer -->
   <div class="print-running-foot"><div class="prf-inner">
     <span class="prf-family">{{ family_name }} 親子腦波關係深度報告</span>
-    <span class="prf-num">{{ ch_idx + 1 }}-{{ section.num }}</span>
+    <span class="prf-num">{{ ch_idx + 1 }}-{{ section.num }}{% if page_chunks|length > 1 %} · {{ chunk_idx + 1 }}/{{ page_chunks|length }}{% endif %}</span>
   </div></div>
 </div>
+{% endfor %}
 
 {% endfor %}
 {% endfor %}
