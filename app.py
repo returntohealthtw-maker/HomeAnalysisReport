@@ -354,6 +354,30 @@ CHILD2_CHAPTER = {
     ],
 }
 
+CHILD3_CHAPTER = {
+    "num": "4c",
+    "title": "第三個孩子的真實呼喚：屬於他的獨特內在世界",
+    "icon": "🌿",
+    "sections": [
+        {"num": 1, "title": "第三孩子的腦波特徵與個性解析"},
+        {"num": 2, "title": "多子女家庭中的情緒角色定位"},
+        {"num": 3, "title": "第三孩子的內在衝突與深層渴望"},
+        {"num": 4, "title": "為第三孩子量身打造的成長支持計畫"},
+    ],
+}
+
+CHILD4_CHAPTER = {
+    "num": "4d",
+    "title": "第四個孩子的真實呼喚：屬於他的獨特內在世界",
+    "icon": "🌻",
+    "sections": [
+        {"num": 1, "title": "第四孩子的腦波特徵與個性解析"},
+        {"num": 2, "title": "多子女家庭中的情緒角色與手足動力"},
+        {"num": 3, "title": "第四孩子的內在衝突與深層渴望"},
+        {"num": 4, "title": "為第四孩子量身打造的成長支持計畫"},
+    ],
+}
+
 SYSTEM_PROMPT = """你是一位擁有二十年臨床經驗的家庭系統治療師，同時具備深厚的神經科學與認知科學背景。你的專長是透過腦波科學數據，精準識別家庭成員的核心心理問題，並以具體的科學框架進行深度分析，最後以溫暖有力的語言引導家庭走向改變。
 
 ═══ 腦波七項指標精確科學定義 ═══
@@ -446,7 +470,7 @@ SYSTEM_PROMPT = """你是一位擁有二十年臨床經驗的家庭系統治療�
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper utilities
 # ─────────────────────────────────────────────────────────────────────────────
-CH_NUMS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三"]
+CH_NUMS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五"]
 SEC_NUMS = ["一", "二", "三", "四"]
 
 
@@ -548,13 +572,30 @@ def format_family_data(members: list) -> str:
 
 def build_chapters(members: list) -> list:
     has_child2 = any(m.get("role") == "child2" and m.get("present") for m in members)
+    has_child3 = any(m.get("role") == "child3" and m.get("present") for m in members)
+    has_child4 = any(m.get("role") == "child4" and m.get("present") for m in members)
+
     chapters = list(BASE_CHAPTERS)
+
+    # Collect extra child chapters in sibling order and insert after chapter 4 (index 4)
+    extra: list = []
     if has_child2:
-        chapters.insert(4, CHILD2_CHAPTER)
-        # Re-number chapters 5 onwards
+        extra.append(CHILD2_CHAPTER)
+    if has_child3:
+        extra.append(CHILD3_CHAPTER)
+    if has_child4:
+        extra.append(CHILD4_CHAPTER)
+
+    for i, ch in enumerate(extra):
+        chapters.insert(4 + i, ch)
+
+    # Re-number the original numbered chapters (>= 5) by the number of extra chapters inserted
+    offset = len(extra)
+    if offset:
         for i, ch in enumerate(chapters):
             if isinstance(ch["num"], int) and ch["num"] >= 5:
-                chapters[i] = dict(ch, num=ch["num"] + 1)
+                chapters[i] = dict(ch, num=ch["num"] + offset)
+
     return chapters
 
 

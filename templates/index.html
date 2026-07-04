@@ -172,6 +172,8 @@ body{
 .role-icon.mother {background:linear-gradient(135deg,#F5E0D8,#E8C0B0)}
 .role-icon.child1 {background:linear-gradient(135deg,#F5EDD8,#E8D090)}
 .role-icon.child2 {background:linear-gradient(135deg,#E0D8F5,#C0B0E8)}
+.role-icon.child3 {background:linear-gradient(135deg,#D8F5E8,#A0E8C0)}
+.role-icon.child4 {background:linear-gradient(135deg,#F5D8E8,#E8A0C0)}
 
 .role-info{flex:1}
 .role-name{font-family:'Noto Serif TC',serif;font-weight:600;font-size:.95rem;color:var(--text)}
@@ -930,6 +932,96 @@ body{
         <span class="status-badge absent" id="badge-child2">◦ 不加入此次報告</span>
       </div>
     </div>
+
+    <!-- Child 3 card -->
+    <div class="person-card" id="card-child3">
+      <div class="card-status-dot"></div>
+      <div class="card-role-header">
+        <div class="role-icon child3">🧒</div>
+        <div class="role-info">
+          <div class="role-name">孩子 3</div>
+          <div class="role-sub">第三個孩子腦波數據</div>
+        </div>
+        <label class="present-toggle">
+          <input type="checkbox" id="present-child3" onchange="togglePresence('child3',this.checked)">
+          <span>有數據</span>
+        </label>
+      </div>
+      <input type="text" class="name-input" id="name-child3" placeholder="請輸入姓名（選填）" maxlength="20">
+      <label class="upload-zone" id="zone-child3" style="opacity:.5;pointer-events:none" ondragover="handleDragOver(event,'child3')" ondragleave="handleDragLeave(event,'child3')" ondrop="handleDrop(event,'child3')">
+        <input type="file" id="file-child3" accept="image/*" onchange="handleFileSelect(event,'child3')">
+        <div class="upload-icon"><svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28c2-4 4-6 6-4s3 6 5 6 3-8 5-8 3 4 5 4 3-6 5-4 4 6 5 6" stroke="#5B7B5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="36" width="40" height="2" rx="1" fill="#C4923A" opacity=".4"/><circle cx="22" cy="14" r="6" stroke="#5B7B5B" stroke-width="2" fill="none"/><path d="M18 14c0-2 1.5-4 4-4s4 2 4 4" stroke="#C4923A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="upload-text"><strong>點擊上傳或拖放圖片</strong>孩子3的腦波量測報告截圖</div>
+      </label>
+      <div class="processing-indicator" id="proc-child3">
+        <div class="spinner"></div>
+        <div class="processing-text">AI 正在識別數據...</div>
+      </div>
+      <div class="upload-success" id="success-child3">
+        <div class="success-thumb">
+          <img id="success-img-child3" src="" alt="腦波報告">
+          <div class="success-check-badge">✓</div>
+          <label class="success-reupload">
+            <input type="file" id="file-reup-child3" accept="image/*" onchange="handleFileSelect(event,'child3')">
+            <div class="reupload-icon"><svg viewBox="0 0 28 28" fill="none"><path d="M5 14A9 9 0 0 1 23 14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 10l4 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="reupload-label">重新上傳</div>
+          </label>
+        </div>
+        <div class="success-info-bar">
+          <div class="sib-label">✅ 數據已識別</div>
+          <div class="sib-stats" id="sib-stats-child3"></div>
+        </div>
+      </div>
+      <div class="data-preview" id="preview-child3"></div>
+      <div style="margin-top:10px">
+        <span class="status-badge absent" id="badge-child3">◦ 不加入此次報告</span>
+      </div>
+    </div>
+
+    <!-- Child 4 card -->
+    <div class="person-card" id="card-child4">
+      <div class="card-status-dot"></div>
+      <div class="card-role-header">
+        <div class="role-icon child4">👧</div>
+        <div class="role-info">
+          <div class="role-name">孩子 4</div>
+          <div class="role-sub">第四個孩子腦波數據</div>
+        </div>
+        <label class="present-toggle">
+          <input type="checkbox" id="present-child4" onchange="togglePresence('child4',this.checked)">
+          <span>有數據</span>
+        </label>
+      </div>
+      <input type="text" class="name-input" id="name-child4" placeholder="請輸入姓名（選填）" maxlength="20">
+      <label class="upload-zone" id="zone-child4" style="opacity:.5;pointer-events:none" ondragover="handleDragOver(event,'child4')" ondragleave="handleDragLeave(event,'child4')" ondrop="handleDrop(event,'child4')">
+        <input type="file" id="file-child4" accept="image/*" onchange="handleFileSelect(event,'child4')">
+        <div class="upload-icon"><svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28c2-4 4-6 6-4s3 6 5 6 3-8 5-8 3 4 5 4 3-6 5-4 4 6 5 6" stroke="#5B7B5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="36" width="40" height="2" rx="1" fill="#C4923A" opacity=".4"/><circle cx="22" cy="14" r="6" stroke="#5B7B5B" stroke-width="2" fill="none"/><path d="M18 14c0-2 1.5-4 4-4s4 2 4 4" stroke="#C4923A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="upload-text"><strong>點擊上傳或拖放圖片</strong>孩子4的腦波量測報告截圖</div>
+      </label>
+      <div class="processing-indicator" id="proc-child4">
+        <div class="spinner"></div>
+        <div class="processing-text">AI 正在識別數據...</div>
+      </div>
+      <div class="upload-success" id="success-child4">
+        <div class="success-thumb">
+          <img id="success-img-child4" src="" alt="腦波報告">
+          <div class="success-check-badge">✓</div>
+          <label class="success-reupload">
+            <input type="file" id="file-reup-child4" accept="image/*" onchange="handleFileSelect(event,'child4')">
+            <div class="reupload-icon"><svg viewBox="0 0 28 28" fill="none"><path d="M5 14A9 9 0 0 1 23 14" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 10l4 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="reupload-label">重新上傳</div>
+          </label>
+        </div>
+        <div class="success-info-bar">
+          <div class="sib-label">✅ 數據已識別</div>
+          <div class="sib-stats" id="sib-stats-child4"></div>
+        </div>
+      </div>
+      <div class="data-preview" id="preview-child4"></div>
+      <div style="margin-top:10px">
+        <span class="status-badge absent" id="badge-child4">◦ 不加入此次報告</span>
+      </div>
+    </div>
   </div>
 
   <!-- STEP 2: Options -->
@@ -1136,6 +1228,8 @@ const state = {
   mother:  { present: true,  data: null },
   child1:  { present: true,  data: null },
   child2:  { present: false, data: null },
+  child3:  { present: false, data: null },
+  child4:  { present: false, data: null },
 };
 
 const ROLES = {
@@ -1143,6 +1237,8 @@ const ROLES = {
   mother: { zh: '媽媽', label: '母親' },
   child1: { zh: '孩子1', label: '第一孩子' },
   child2: { zh: '孩子2', label: '第二孩子' },
+  child3: { zh: '孩子3', label: '第三孩子' },
+  child4: { zh: '孩子4', label: '第四孩子' },
 };
 
 const METRICS = ['直覺能力','氣血飽滿','內在安定','高度專注','邏輯分析','觀察環境','慈悲柔軟'];
@@ -1398,8 +1494,8 @@ function togglePresence(role, checked) {
     zone.style.pointerEvents = 'none';
     updateCard(role, 'absent');
   }
-  if (role === 'child2') {
-    const badge = document.getElementById('badge-child2');
+  if (role === 'child2' || role === 'child3' || role === 'child4') {
+    const badge = document.getElementById('badge-' + role);
     if (badge) badge.style.display = checked ? 'none' : 'inline-flex';
   }
 }
@@ -1414,7 +1510,7 @@ async function startGeneration() {
     if (!anyPresent) { alert('請勾選至少一位家庭成員'); return; }
   }
 
-  const members = ['father','mother','child1','child2'].map(role => ({
+  const members = ['father','mother','child1','child2','child3','child4'].map(role => ({
     role,
     role_zh: ROLES[role].zh,
     name: document.getElementById('name-' + role).value.trim() || ROLES[role].zh,
@@ -1545,6 +1641,12 @@ const CHAPTERS_DATA = [
   { num:'4b', icon:'🌼', title:'第二個孩子的真實呼喚：屬於他的獨特內在世界', sections:[
     {num:1,title:'第二孩子的腦波特徵與個性解析'},{num:2,title:'手足關係中的情緒角色分配'},
     {num:3,title:'孩子二的內在衝突與深層渴望'},{num:4,title:'為孩子二量身打造的成長支持計畫'}]},
+  { num:'4c', icon:'🌿', title:'第三個孩子的真實呼喚：屬於他的獨特內在世界', sections:[
+    {num:1,title:'第三孩子的腦波特徵與個性解析'},{num:2,title:'多子女家庭中的情緒角色定位'},
+    {num:3,title:'第三孩子的內在衝突與深層渴望'},{num:4,title:'為第三孩子量身打造的成長支持計畫'}]},
+  { num:'4d', icon:'🌻', title:'第四個孩子的真實呼喚：屬於他的獨特內在世界', sections:[
+    {num:1,title:'第四孩子的腦波特徵與個性解析'},{num:2,title:'多子女家庭中的情緒角色與手足動力'},
+    {num:3,title:'第四孩子的內在衝突與深層渴望'},{num:4,title:'為第四孩子量身打造的成長支持計畫'}]},
   { num:5, icon:'🌊', title:'能量流動與壓力傳遞路徑', sections:[
     {num:1,title:'壓力如何在家庭成員間流動'},{num:2,title:'孩子如何成為家庭情緒的「吸收器」'},
     {num:3,title:'高壓平衡狀態下的隱形危機'},{num:4,title:'阻斷壓力流：把情緒責任還給自己'}]},
@@ -1572,8 +1674,12 @@ const CHAPTERS_DATA = [
 ];
 
 function getActiveChapters() {
-  // Include chapter 4b only if child2 is present
-  return CHAPTERS_DATA.filter(ch => ch.num !== '4b' || state.child2.present);
+  return CHAPTERS_DATA.filter(ch => {
+    if (ch.num === '4b') return state.child2.present;
+    if (ch.num === '4c') return state.child3.present;
+    if (ch.num === '4d') return state.child4.present;
+    return true;
+  });
 }
 
 function buildChaptersTree() {
