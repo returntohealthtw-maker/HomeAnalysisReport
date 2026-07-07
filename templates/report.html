@@ -649,6 +649,14 @@ body {
     overflow: visible !important;
     padding: 16mm 22mm 20mm;
   }
+  /* Force 2-column layout in print (matches the web view side-by-side look).
+     The auto-fit minmax(320px) grid collapses to 1 column at A4 print width
+     because left+right padding (22mm×2) reduces content width to ~166mm,
+     which is too narrow for two 320px columns.  Explicit 1fr 1fr fixes this. */
+  .overview-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 14px !important;
+  }
   /* Keep each member card intact — never let Chrome cut a card in half */
   .overview-card {
     break-inside: avoid !important;
