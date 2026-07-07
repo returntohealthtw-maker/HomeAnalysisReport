@@ -643,10 +643,16 @@ body {
   .page-cover { height: 297mm; overflow: hidden; padding: 28mm 22mm 18mm; background: white !important; }
 
   /* ── Data overview & TOC: FREE-FLOWING, multi-page OK ── */
-  .page-data-overview {
+  .page-data-overview,
+  .page-overview {
     height: auto !important;
     overflow: visible !important;
     padding: 16mm 22mm 20mm;
+  }
+  /* Keep each member card intact — never let Chrome cut a card in half */
+  .overview-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
   .page-toc,
   .page-toc-cont {
