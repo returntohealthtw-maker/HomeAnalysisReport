@@ -909,17 +909,25 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
 </div>
 {% endif %}
 
-<!-- ═══ DATA OVERVIEW PAGE ═══ -->
+<!-- ═══ DATA OVERVIEW PAGES (2 cards per physical page) ═══ -->
+{# Use batch(2) so each pair of member cards gets its own .page div.
+   This ensures every physical page has the same top padding — no card
+   is ever pressed against the top edge of a continuation page. #}
+{% set present_members = members | selectattr('present') | list %}
+{% for pair in present_members | batch(2) %}
 <div class="page page-overview">
+  {% if loop.first %}
   <div class="overview-title">📊 腦波量測數據總覽</div>
+  {% endif %}
   <div class="overview-grid">
-    {% for m in members %}
-    {% if m.present %}
+    {% for m in pair %}
     <div class="overview-card">
       <div class="ov-member-header">
         <div class="ov-icon {{ m.role }}">
           {% if m.role == 'father' %}👨{% elif m.role == 'mother' %}👩
-          {% elif m.role == 'child1' %}🧒{% else %}👦{% endif %}
+          {% elif m.role == 'child1' %}🧒{% elif m.role == 'child2' %}👦
+          {% elif m.role == 'child3' %}🧒{% elif m.role == 'child4' %}👧
+          {% else %}🧒{% endif %}
         </div>
         <div>
           <div class="ov-name">{{ m.name }}</div>
@@ -984,11 +992,10 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
       <div class="predicted-note">⚡ 此次未提供腦波數據<br>以下章節將採用「家庭系統動力預測分析」模式</div>
       {% endif %}
     </div>
-    {% endif %}
     {% endfor %}
   </div>
-
 </div>
+{% endfor %}
 
 <!-- ═══ WAVE LEGEND PAGE ═══ -->
 <div class="page page-wave-legend">
