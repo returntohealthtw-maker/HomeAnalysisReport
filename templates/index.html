@@ -1436,7 +1436,11 @@ function renderDataPreview(role, data, imgUrl) {
   successImg.src = imgUrl;
   const conc = data.concentration_pct || 0;
   const relx = data.relaxation_pct    || 0;
-  sibStats.textContent = `專注 ${conc}%・放鬆 ${relx}%`;
+  const age  = (data.age != null) ? data.age : null;
+  const ageLabel = age != null
+    ? (age <= 12 ? `${age}歲・兒童` : age <= 17 ? `${age}歲・青少年` : `${age}歲・成人`)
+    : '';
+  sibStats.textContent = `專注 ${conc}%・放鬆 ${relx}%` + (ageLabel ? `・${ageLabel}` : '');
 
   // Hide upload zone, show success zone
   document.getElementById('zone-' + role).style.display = 'none';
@@ -1455,7 +1459,22 @@ function renderDataPreview(role, data, imgUrl) {
     </div>`;
   }).join('');
 
+  const ageToneTag = age == null ? '未偵測到（可手動填入）'
+    : age <= 12 ? '🧒 兒童口吻'
+    : age <= 17 ? '🎒 青少年口吻'
+    : '🧑 成人子女口吻';
+
   container.innerHTML = `
+    <div class="data-row">
+      <span class="data-key">年齡</span>
+      <span class="data-val">
+        <input type="number" min="1" max="120" value="${age != null ? age : ''}"
+          placeholder="歲"
+          onchange="updateAge('${role}', this.value)"
+          style="width:52px">歲
+        <span style="font-size:.7rem;color:var(--text-3);margin-left:4px" id="age-tag-${role}">${ageToneTag}</span>
+      </span>
+    </div>
     <div class="data-row">
       <span class="data-key">專注度</span>
       <span class="data-val">
@@ -1479,6 +1498,19 @@ function renderDataPreview(role, data, imgUrl) {
 function updateField(role, field, value) {
   if (state[role].data) {
     state[role].data[field] = parseInt(value) || 0;
+  }
+}
+
+function updateAge(role, value) {
+  if (!state[role].data) return;
+  const age = value === '' ? null : (parseInt(value) || null);
+  state[role].data.age = age;
+  const tag = document.getElementById('age-tag-' + role);
+  if (tag) {
+    tag.textContent = age == null ? '未填寫'
+      : age <= 12 ? '🧒 兒童口吻'
+      : age <= 17 ? '🎒 青少年口吻'
+      : '🧑 成人子女口吻';
   }
 }
 

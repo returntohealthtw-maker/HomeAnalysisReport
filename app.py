@@ -512,6 +512,43 @@ def get_call_name(m: dict) -> str:
         return given  # children: given name only
 
 
+def get_age_tone_note(age, role_zh: str) -> str:
+    """Return a tone-guidance note to inject into the AI prompt based on age.
+
+    Age groups:
+      ≤ 12  → child       (兒童：發展心理學、依附、遊戲、安全感)
+      13–17 → adolescent  (青少年：自我認同、同儕、自主性、代際互動)
+      ≥ 18  → adult child (成年子女：個體化、代際模式、成人依附、對等語氣)
+    Returns empty string when age is unknown.
+    """
+    if age is None:
+        return ""
+    try:
+        age = int(age)
+    except (TypeError, ValueError):
+        return ""
+
+    if age <= 12:
+        return (
+            f"【{role_zh}年齡{age}歲 — 兒童口吻】"
+            "請以兒童發展心理學框架撰寫，語言溫暖具體，聚焦安全感、遊戲、學習與親子依附，"
+            "適合描述孩童的用詞（如：小小的心、童年、玩耍）。"
+        )
+    elif age <= 17:
+        return (
+            f"【{role_zh}年齡{age}歲 — 青少年口吻】"
+            "請以青少年心理發展框架撰寫，聚焦自我認同形成、同儕關係、自主性追求、學業壓力與代際互動，"
+            "語氣平等尊重，不要使用幼兒化語言，也不要完全以成人視角俯視。"
+        )
+    else:
+        return (
+            f"【{role_zh}年齡{age}歲 — 成年子女口吻】"
+            "⚠️ 此成員已是成年人，嚴禁使用「孩子」「童年」「小時候的」等兒童化語言描述其當下狀態。"
+            "請以成人對成人的平等框架撰寫，聚焦個體化（individuation）、代際模式傳承、"
+            "成人依附型態、職涯與人際關係、自我負責能力。語氣對等，視為獨立成年個體。"
+        )
+
+
 def fix_honorifics(text: str, members: list) -> str:
     """Replace wrong-suffix variants with the correct given-name call form.
     Only replaces name+suffix patterns — never bare names, to prevent double-suffix bugs."""
@@ -549,7 +586,9 @@ def format_family_data(members: list) -> str:
             # Only use the user-entered name when actual data is present
             name = m.get("name", role_zh)
             d = m["data"]
-            lines.append(f"\n【{role_zh}】{name}")
+            age = d.get("age")
+            age_str = f"（{age}歲）" if age is not None else ""
+            lines.append(f"\n【{role_zh}】{name}{age_str}")
             lines.append(
                 f"  專注度：{d.get('concentration_pct', 'N/A')}%  "
                 f"（高:{d.get('concentration_high','?')}  中:{d.get('concentration_medium','?')}  低:{d.get('concentration_low','?')}）"
@@ -634,6 +673,19 @@ def generate_section_text(
         + absent_note
     )
 
+    # Build age-based tone guidance for every present member who has an age
+    age_tone_lines = []
+    for m in members:
+        if m.get("present"):
+            age = (m.get("data") or {}).get("age")
+            note = get_age_tone_note(age, m.get("role_zh", ""))
+            if note:
+                age_tone_lines.append(f"  {note}")
+    age_tone_note = (
+        "\n【年齡口吻規定】（嚴格遵守）\n" + "\n".join(age_tone_lines)
+        if age_tone_lines else ""
+    )
+
     # Special prompt for the risk chapter (未來風險防範與警訊應對).
     # Use title, not num, because inserting the child2 chapter renumbers later chapters
     # (risk chapter becomes num 12 and weekly-plan chapter becomes num 13 when a second
@@ -649,6 +701,7 @@ def generate_section_text(
 {family_data_str}
 {missing_note}
 {call_name_note}
+{age_tone_note}
 
 請為以下章節撰寫深度分析報告：
 
@@ -712,6 +765,7 @@ def generate_section_text(
 {family_data_str}
 {missing_note}
 {call_name_note}
+{age_tone_note}
 
 本次參與成員的關鍵數據摘要：
 {member_lines}
@@ -760,6 +814,7 @@ def generate_section_text(
 {family_data_str}
 {missing_note}
 {call_name_note}
+{age_tone_note}
 請為以下章節撰寫深度心理分析報告：
 
 📌 第{ch_zh}章《{chapter['title']}》
@@ -1068,6 +1123,7 @@ def extract():
     extraction_prompt = """請仔細分析這張腦波量測結果圖片，精確提取所有數值並以下列JSON格式回應（只回傳JSON，不需要其他文字）：
 
 {
+  "age": <受測者年齡，整數；若圖片中看不到年齡則填 null>,
   "concentration_pct": <專注度百分比，整數>,
   "concentration_high": <專注高區間數值>,
   "concentration_medium": <專注中區間數值>,
@@ -1087,7 +1143,7 @@ def extract():
   }
 }
 
-請確保所有數值皆為整數，若某數值在圖片中不清晰，請填入0。"""
+請確保所有數值皆為整數，age 若看不到則填 null，其餘數值若不清晰請填入0。"""
 
     def _call_extract(use_json_mime: bool):
         """Call Gemini once with thinking disabled; returns raw text or raises."""
