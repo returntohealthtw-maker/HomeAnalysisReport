@@ -374,6 +374,20 @@ body{
   transition:width .4s ease;
 }
 .mini-bar-val{font-size:.7rem;color:var(--text-3);width:28px;text-align:right;flex-shrink:0}
+.mini-bar-edit{display:flex;align-items:center;gap:2px;font-size:.7rem;color:var(--text-3);flex-shrink:0}
+.mini-bar-input{
+  width:44px;border:1px solid var(--border);border-radius:6px;
+  padding:2px 4px;font-size:.72rem;text-align:right;
+  color:var(--text);background:var(--cream);
+}
+.mini-bar-input:focus{outline:none;border-color:var(--green)}
+.mini-bar-row.missing .mini-bar-label{color:#C0392B;font-weight:600}
+.mini-bar-row.missing .mini-bar-input{border-color:#E57373;background:#FFF3F3}
+.missing-hint{
+  font-size:.72rem;color:#B03A2E;background:#FDECEA;
+  border:1px solid #F5C6C0;border-radius:6px;
+  padding:5px 8px;margin-bottom:6px;line-height:1.5;
+}
 
 .status-badge{
   display:inline-flex;align-items:center;gap:4px;
@@ -1310,7 +1324,13 @@ async function processImage(file, role) {
       state[role].data = json.data;
       renderDataPreview(role, json.data, imgUrl);
       updateCard(role, 'ready');
-      showToast('success', '識別成功', `${ROLES[role].zh} 的腦波數據已自動提取完成，請確認數值是否正確。`);
+      const miss = json.missing_metrics || [];
+      if (miss.length) {
+        showToast('warning', `${ROLES[role].zh}：有 ${miss.length} 項未讀取到`,
+          `「${miss.join('、')}」無法從圖片辨識（可能被截斷），請在資料卡片的紅框欄位手動輸入。`, 12000);
+      } else {
+        showToast('success', '識別成功', `${ROLES[role].zh} 的腦波數據已自動提取完成，請確認數值是否正確。`);
+      }
     } else if (json.error === 'quota') {
       showToast('error', 'Gemini API 配額不足', json.message, 0);
       updateCard(role, 'error');
@@ -1450,14 +1470,25 @@ function renderDataPreview(role, data, imgUrl) {
   const container = document.getElementById('preview-' + role);
   const m = data.metrics || {};
 
+  // Each metric is an editable number box. Unreadable values (null / 0) are
+  // highlighted in red so the user knows exactly which ones to fill in by hand.
+  const missingKeys = METRICS.filter(k => !m[k]);
   const metricBars = METRICS.map(k => {
+    const isMissing = !m[k];
     const val = m[k] || 0;
-    return `<div class="mini-bar-row">
+    return `<div class="mini-bar-row${isMissing ? ' missing' : ''}" id="mrow-${role}-${k}">
       <div class="mini-bar-label">${k}</div>
       <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${val}%"></div></div>
-      <div class="mini-bar-val">${val}%</div>
+      <div class="mini-bar-edit">
+        <input type="number" min="0" max="100" class="mini-bar-input"
+          value="${isMissing ? '' : val}" placeholder="?"
+          oninput="updateMetric('${role}','${k}',this.value)">%
+      </div>
     </div>`;
   }).join('');
+  const missingHint = `<div class="missing-hint" id="missing-hint-${role}" style="display:${missingKeys.length ? 'block' : 'none'}">
+      ⚠️ 有 <span id="missing-count-${role}">${missingKeys.length}</span> 項未能從圖片讀取（紅框），請對照原始報告手動輸入
+    </div>`;
 
   const ageToneTag = age == null ? '未偵測到（可手動填入）'
     : age <= 12 ? '🧒 兒童口吻'
@@ -1489,6 +1520,7 @@ function renderDataPreview(role, data, imgUrl) {
     </div>
     <div class="metrics-section">
       <div class="metrics-title">七項腦波能力指標（可手動修正）</div>
+      ${missingHint}
       ${metricBars}
     </div>
   `;
@@ -1499,6 +1531,29 @@ function updateField(role, field, value) {
   if (state[role].data) {
     state[role].data[field] = parseInt(value) || 0;
   }
+}
+
+// Manually edit one of the seven brainwave ability metrics
+function updateMetric(role, key, value) {
+  if (!state[role].data) return;
+  if (!state[role].data.metrics) state[role].data.metrics = {};
+  let v = value === '' ? null : parseInt(value);
+  if (v != null && isNaN(v)) v = null;
+  if (v != null) v = Math.max(0, Math.min(100, v));
+  state[role].data.metrics[key] = v;
+
+  const row = document.getElementById(`mrow-${role}-${key}`);
+  if (row) {
+    row.classList.toggle('missing', !v);
+    const fill = row.querySelector('.mini-bar-fill');
+    if (fill) fill.style.width = (v || 0) + '%';
+  }
+  // refresh the "N items missing" hint
+  const left = METRICS.filter(k => !state[role].data.metrics[k]).length;
+  const hint = document.getElementById('missing-hint-' + role);
+  const cnt  = document.getElementById('missing-count-' + role);
+  if (cnt)  cnt.textContent = left;
+  if (hint) hint.style.display = left ? 'block' : 'none';
 }
 
 function updateAge(role, value) {

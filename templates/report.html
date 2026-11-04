@@ -979,7 +979,7 @@ document.getElementById('pdf-guide-overlay').addEventListener('click', function(
           '慈悲柔軟': 'Lγ'
         } %}
         {% for key in ['直覺能力','氣血飽滿','內在安定','高度專注','邏輯分析','觀察環境','慈悲柔軟'] %}
-        {% set val = metrics.get(key, 0) if metrics else 0 %}
+        {% set val = (metrics.get(key) or 0) if metrics else 0 %}
         <div class="bar-row">
           <div class="bar-key" title="{{ metric_waves[key] }}波">{{ key }}</div>
           <div class="bar-track"><div class="bar-fill" style="width:{{ val }}%"></div></div>

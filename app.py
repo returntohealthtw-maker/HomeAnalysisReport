@@ -600,8 +600,11 @@ def format_family_data(members: list) -> str:
             lines.append("  腦波能力七項指標：")
             metrics = d.get("metrics", {})
             for key in ["直覺能力", "氣血飽滿", "內在安定", "高度專注", "邏輯分析", "觀察環境", "慈悲柔軟"]:
-                val = metrics.get(key, "N/A")
-                lines.append(f"    {key}：{val}%")
+                val = metrics.get(key)
+                if val is None:
+                    lines.append(f"    {key}：（未取得數值，請勿引用此項具體數字）")
+                else:
+                    lines.append(f"    {key}：{val}%")
         else:
             # Absent member: use ONLY the generic role label — never the entered name.
             # This prevents leaking names from previous sessions or form auto-fill.
@@ -1143,7 +1146,15 @@ def extract():
   }
 }
 
-請確保所有數值皆為整數，age 若看不到則填 null，其餘數值若不清晰請填入0。"""
+【版型說明】
+- 圖片可能是淺色版（圓環圖＋長條圖）或深色版（黑底、彩色長條，標示 Delta/Theta/Alpha/Beta/H Beta/Gamma 等頻段與數值）。
+- 七項指標的對應：直覺能力＝θ(Theta)、氣血飽滿＝High α、內在安定＝Low α、高度專注＝High β、邏輯分析＝Low β、觀察環境＝High γ、慈悲柔軟＝Low γ。
+- 請仔細檢視整張圖（含下半部），七項指標通常是由上往下依序排列的長條。
+
+【輸出規則】
+- 所有數值皆為整數。
+- 圖片中「確實看不到或被截斷」的欄位，請填 null；絕對不要猜測或編造，也不要用 0 代替看不到的數值。
+- age 若看不到則填 null。"""
 
     def _call_extract(use_json_mime: bool):
         """Call Gemini once with thinking disabled; returns raw text or raises."""
@@ -1205,8 +1216,24 @@ def extract():
             raw_text = _call_extract(use_json_mime=False)
             result = _parse_json(raw_text)
 
-        print(f"[EXTRACT OK] keys={list(result.keys())}", flush=True)
-        return jsonify({"success": True, "data": result})
+        # Normalise metrics: guarantee all 7 keys exist; unreadable values become None
+        metric_keys = ["直覺能力", "氣血飽滿", "內在安定", "高度專注", "邏輯分析", "觀察環境", "慈悲柔軟"]
+        raw_metrics = result.get("metrics") or {}
+        clean_metrics, missing_metrics = {}, []
+        for k in metric_keys:
+            v = raw_metrics.get(k)
+            try:
+                v = int(v) if v is not None else None
+            except (TypeError, ValueError):
+                v = None
+            # A 0 for a brainwave ability metric almost always means "not read"
+            if v is None or v == 0:
+                missing_metrics.append(k)
+            clean_metrics[k] = v
+        result["metrics"] = clean_metrics
+
+        print(f"[EXTRACT OK] keys={list(result.keys())} missing={missing_metrics}", flush=True)
+        return jsonify({"success": True, "data": result, "missing_metrics": missing_metrics})
 
     except json.JSONDecodeError as e:
         raw = raw_text or "N/A"
