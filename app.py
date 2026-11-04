@@ -1136,6 +1136,33 @@ ABILITY_TO_METRIC = {
 }
 
 
+# DriveImport sessions (printed values recognised from old PDFs) use different keys.
+# Mapping vitality→energy / innerCalm→relaxation / observation→awareness was inferred by
+# the database project and is NOT yet verified against PDFs one by one — hence the
+# "source" label shown to the user.  Standard keys win when both exist.
+ABILITY_ALIASES = {
+    "intuition":  ("intuition", "直覺能力"),
+    "energy":     ("energy", "vitality", "氣血飽滿"),
+    "relaxation": ("relaxation", "innerCalm", "內在安定"),
+    "focus":      ("focus", "高度專注"),
+    "logic":      ("logic", "邏輯分析"),
+    "awareness":  ("awareness", "observation", "觀察環境"),
+    "empathy":    ("empathy", "慈悲柔軟"),
+}
+
+
+def _ability(ab: dict, en: str):
+    for key in ABILITY_ALIASES[en]:
+        if ab.get(key) is not None:
+            return ab.get(key)
+    return None
+
+
+def _session_source(s: dict) -> str:
+    """'printed' = values printed on an old PDF (DriveImport); 'computed' = database formula."""
+    return "printed" if (s.get("sourceApp") or "") == "DriveImport" else "computed"
+
+
 def _braindb_conf():
     return (os.getenv("BRAINDB_SERVICE_KEY", "").strip(),
             os.getenv("BRAINDB_IMPORT_PASSWORD", "").strip())
@@ -1209,7 +1236,7 @@ def _session_kind(s: dict) -> str | None:
     if s.get("analysisStatus") != "completed":
         return None
     ab = s.get("qeegAbilities") or {}
-    if any(_num(ab.get(k)) for k in ABILITY_TO_METRIC):
+    if any(_num(_ability(ab, k)) for k in ABILITY_TO_METRIC):
         return "full"
     if _num(s.get("attention")) or _num(s.get("relaxation")):
         return "headline"
@@ -1271,6 +1298,7 @@ def db_sessions():
             "analysisStatus": s.get("analysisStatus"),
             "ready": kind is not None,
             "kind": kind,
+            "source": _session_source(s),
             "totalFeatures": s.get("totalFeatures"),
         })
     return jsonify({"sessions": sessions})
@@ -1305,7 +1333,7 @@ def db_import():
                         "message": "資料庫中這筆檢測沒有可用的腦波數值（不會用 0 代替），請改選其他一筆，或改用圖片辨識。"}), 409
 
     age = _age_at(subject.get("birthDate"), sess.get("startedAt"))
-    metrics = {zh: _num(abilities.get(en)) for en, zh in ABILITY_TO_METRIC.items()}
+    metrics = {zh: _num(_ability(abilities, en)) for en, zh in ABILITY_TO_METRIC.items()}
 
     # 專注度 / 放鬆度: adults → QEEG focus / relaxation; minors → eSense attention / meditation
     # (same rule AutomaticDetection uses, see AD_REPORT_INDICATORS_HANDOFF.md §二)
@@ -1334,12 +1362,21 @@ def db_import():
     if _session_kind(sess) == "headline":
         note = ("此人資料庫只有專注度／放鬆度；七項腦波能力指標沒有數值"
                 "（未滿 18 歲的分析本來就不產生），請依原始報告手動輸入。")
+    source = _session_source(sess)
+    source_note = (
+        "來源：舊報告 PDF 的印刷值（欄位對應 vitality→氣血飽滿、innerCalm→內在安定、observation→觀察環境 "
+        "尚未逐筆驗證，請抽樣對照原 PDF）。"
+        if source == "printed" else
+        "來源：資料庫演算值，與報告 PDF 上印的數值可能不同；要與 PDF 一致請改用圖片辨識。"
+    )
 
     return jsonify({
         "success": True,
         "data": data,
         "missing_metrics": missing,
         "note": note,
+        "source": source,
+        "source_note": source_note,
         "name": subject.get("name") or "",
         "measured_at": sess.get("startedAt"),
     })

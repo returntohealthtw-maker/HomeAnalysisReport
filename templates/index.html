@@ -1957,8 +1957,9 @@ async function dbPickSubject(s) {
       const tag = document.createElement('span');
       tag.className = 'db-tag' + (x.ready ? '' : ' wait');
       const partial = x.kind === 'headline' ? '（僅專注・放鬆）' : '';
+      const src = x.source === 'printed' ? '・PDF印刷值' : '・演算值';
       tag.textContent = !x.ready ? '無可用數值'
-        : (latest && x.sessionId === latest.sessionId ? '最新・可匯入' : '可匯入') + partial;
+        : (latest && x.sessionId === latest.sessionId ? '最新' : '可匯入') + src + partial;
       b.appendChild(left); b.appendChild(tag);
       if (x.ready) b.onclick = () => {
         selectedId = x.sessionId;
@@ -1997,9 +1998,12 @@ async function dbImport(s, sessionId) {
     const miss = json.missing_metrics || [];
     if (miss.length) {
       showToast('warning', `${ROLES[role].zh}：資料庫缺少 ${miss.length} 項`,
-        json.note || `「${miss.join('、')}」資料庫沒有數值，請在紅框欄位手動輸入。`, 14000);
+        (json.note || `「${miss.join('、')}」資料庫沒有數值，請在紅框欄位手動輸入。`) +
+        (json.source_note ? '<br>' + json.source_note : ''), 16000);
     } else {
-      showToast('success', '匯入成功', `${ROLES[role].zh} 的腦波數據已從資料庫匯入（${s.name}）。`);
+      showToast('success', '匯入成功',
+        `${ROLES[role].zh} 的腦波數據已從資料庫匯入（${String(s.name).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}）。` +
+        (json.source_note ? '<br>' + json.source_note : ''), 14000);
     }
   } catch (e) {
     dbSetMsg(e.message, true);
