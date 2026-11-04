@@ -775,6 +775,7 @@ body{
 }
 .db-item:hover:not(:disabled){border-color:var(--green);background:var(--green-xl)}
 .db-item:disabled{opacity:.55;cursor:not-allowed}
+.db-item.selected{border-color:var(--green);background:var(--green-xl);box-shadow:0 0 0 2px rgba(91,123,91,.25)}
 .db-item small{color:var(--text-3)}
 .db-tag{font-size:.7rem;padding:2px 8px;border-radius:10px;background:var(--green-xl);color:var(--green);flex-shrink:0}
 .db-tag.wait{background:var(--gold-xl);color:var(--gold)}
@@ -1917,17 +1918,34 @@ async function dbPickSubject(s) {
   dbSetMsg(`讀取「${s.name}」的檢測紀錄中…`);
   try {
     const json = await dbFetch('/db/sessions?subjectId=' + encodeURIComponent(s.subjectId));
-    const list = json.sessions || [];
+    // Newest first, regardless of the order the API returned them in
+    const list = (json.sessions || []).slice().sort(
+      (a, b) => (Date.parse(b.startedAt) || 0) - (Date.parse(a.startedAt) || 0));
     const box = document.getElementById('db-list');
     const back = document.createElement('button');
     back.type = 'button'; back.className = 'db-back'; back.textContent = '← 重新搜尋';
     back.onclick = () => dbSearch();
     box.appendChild(back);
     if (!list.length) { dbSetMsg(`「${s.name}」目前沒有已完成的檢測紀錄。`, true); return; }
-    dbSetMsg(`「${s.name}」的檢測紀錄（最新在上），請選擇要匯入的一筆：`);
+
+    // Default selection = the newest session that is ready to import
+    const latest = list.find(x => x.ready);
+    if (!latest) { dbSetMsg(`「${s.name}」的檢測都還在分析中，暫時無法匯入。`, true); }
+    else { dbSetMsg(`「${s.name}」的檢測紀錄，已預設選取最新一筆，確認後按「匯入」：`); }
+
+    let selectedId = latest ? latest.sessionId : null;
+    const importBtn = document.createElement('button');
+    importBtn.type = 'button'; importBtn.className = 'db-btn';
+    importBtn.style.marginTop = '4px';
+    importBtn.textContent = '匯入選取的這一筆';
+    importBtn.disabled = !latest;
+    importBtn.onclick = () => selectedId && dbImport(s, selectedId);
+
+    const items = [];
     list.forEach(x => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'db-item'; b.disabled = !x.ready;
+      if (x.sessionId === selectedId) b.classList.add('selected');
       const left = document.createElement('span');
       const when = x.startedAt ? new Date(x.startedAt).toLocaleString('zh-TW', { hour12: false }) : '（無時間）';
       left.textContent = when;
@@ -1938,11 +1956,16 @@ async function dbPickSubject(s) {
       }
       const tag = document.createElement('span');
       tag.className = 'db-tag' + (x.ready ? '' : ' wait');
-      tag.textContent = x.ready ? '可匯入' : '分析未完成';
+      tag.textContent = !x.ready ? '分析未完成' : (latest && x.sessionId === latest.sessionId ? '最新・可匯入' : '可匯入');
       b.appendChild(left); b.appendChild(tag);
-      if (x.ready) b.onclick = () => dbImport(s, x.sessionId);
+      if (x.ready) b.onclick = () => {
+        selectedId = x.sessionId;
+        items.forEach(i => i.el.classList.toggle('selected', i.id === selectedId));
+      };
+      items.push({ el: b, id: x.sessionId });
       box.appendChild(b);
     });
+    box.appendChild(importBtn);
   } catch (e) {
     dbSetMsg(e.message, true);
   }
