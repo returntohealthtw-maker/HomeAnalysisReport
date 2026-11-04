@@ -1956,7 +1956,9 @@ async function dbPickSubject(s) {
       }
       const tag = document.createElement('span');
       tag.className = 'db-tag' + (x.ready ? '' : ' wait');
-      tag.textContent = !x.ready ? '分析未完成' : (latest && x.sessionId === latest.sessionId ? '最新・可匯入' : '可匯入');
+      const partial = x.kind === 'headline' ? '（僅專注・放鬆）' : '';
+      tag.textContent = !x.ready ? '無可用數值'
+        : (latest && x.sessionId === latest.sessionId ? '最新・可匯入' : '可匯入') + partial;
       b.appendChild(left); b.appendChild(tag);
       if (x.ready) b.onclick = () => {
         selectedId = x.sessionId;
@@ -1995,7 +1997,7 @@ async function dbImport(s, sessionId) {
     const miss = json.missing_metrics || [];
     if (miss.length) {
       showToast('warning', `${ROLES[role].zh}：資料庫缺少 ${miss.length} 項`,
-        `「${miss.join('、')}」資料庫沒有數值，請在紅框欄位手動輸入。`, 12000);
+        json.note || `「${miss.join('、')}」資料庫沒有數值，請在紅框欄位手動輸入。`, 14000);
     } else {
       showToast('success', '匯入成功', `${ROLES[role].zh} 的腦波數據已從資料庫匯入（${s.name}）。`);
     }

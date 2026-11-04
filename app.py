@@ -1197,6 +1197,25 @@ def _num(v):
         return None
 
 
+def _session_kind(s: dict) -> str | None:
+    """How much usable brainwave data a database session carries.
+
+    'full'     – analysis completed and the seven QEEG abilities are present (adults)
+    'headline' – analysis completed but only attention/relaxation exist.  This is the
+                 normal case for minors: the analysis engine deliberately leaves
+                 qeegAbilities null for people under 18 (minorProfile).
+    None       – analysis not completed, or nothing numeric to import.
+    """
+    if s.get("analysisStatus") != "completed":
+        return None
+    ab = s.get("qeegAbilities") or {}
+    if any(_num(ab.get(k)) for k in ABILITY_TO_METRIC):
+        return "full"
+    if _num(s.get("attention")) or _num(s.get("relaxation")):
+        return "headline"
+    return None
+
+
 @app.route("/db/status")
 def db_status():
     key, pw = _braindb_conf()
@@ -1245,11 +1264,13 @@ def db_sessions():
         return _braindb_error(e)
     sessions = []
     for s in raw.get("sessions", []):
+        kind = _session_kind(s)
         sessions.append({
             "sessionId": s.get("sessionId") or s.get("id"),
             "startedAt": s.get("startedAt"),
             "analysisStatus": s.get("analysisStatus"),
-            "ready": s.get("analysisStatus") == "completed" and bool(s.get("qeegAbilities")),
+            "ready": kind is not None,
+            "kind": kind,
             "totalFeatures": s.get("totalFeatures"),
         })
     return jsonify({"sessions": sessions})
@@ -1276,9 +1297,12 @@ def db_import():
     if sess.get("subjectId") and sess.get("subjectId") != subject_id:
         return jsonify({"error": "mismatch", "message": "這筆檢測不屬於所選的受測者。"}), 400
     abilities = sess.get("qeegAbilities") or {}
-    if sess.get("analysisStatus") != "completed" or not abilities:
+    if sess.get("analysisStatus") != "completed":
         return jsonify({"error": "not_ready",
                         "message": "這筆檢測尚未完成正式分析，數值還不能使用，請改選其他一筆或稍後再試。"}), 409
+    if _session_kind(sess) is None:
+        return jsonify({"error": "no_values",
+                        "message": "資料庫中這筆檢測沒有可用的腦波數值（不會用 0 代替），請改選其他一筆，或改用圖片辨識。"}), 409
 
     age = _age_at(subject.get("birthDate"), sess.get("startedAt"))
     metrics = {zh: _num(abilities.get(en)) for en, zh in ABILITY_TO_METRIC.items()}
@@ -1306,10 +1330,16 @@ def db_import():
     if relax is None:
         missing.insert(1 if focus is None else 0, "放鬆度")
 
+    note = ""
+    if _session_kind(sess) == "headline":
+        note = ("此人資料庫只有專注度／放鬆度；七項腦波能力指標沒有數值"
+                "（未滿 18 歲的分析本來就不產生），請依原始報告手動輸入。")
+
     return jsonify({
         "success": True,
         "data": data,
         "missing_metrics": missing,
+        "note": note,
         "name": subject.get("name") or "",
         "measured_at": sess.get("startedAt"),
     })
