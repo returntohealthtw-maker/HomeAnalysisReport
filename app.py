@@ -6,6 +6,11 @@ import base64
 import shutil
 import threading
 import time
+import hmac
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, date
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from google import genai
@@ -1106,6 +1111,208 @@ def upload_cover():
         return jsonify({"ok": True, "url": f"/static/{filename}"})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Brainwave database integration (alternative to image OCR)
+#
+# Pulls a subject's measured values straight from the brainwave database
+# (see D:\Write program\Database\API_INTEGRATION_GUIDE.md).  The API key stays on
+# the server (env BRAINDB_SERVICE_KEY, must be an admin APP key so it can search
+# subjects across owners).  Because this exposes personal health data, every /db/*
+# call also requires the shared access password BRAINDB_IMPORT_PASSWORD.
+# ─────────────────────────────────────────────────────────────────────────────
+BRAINDB_BASE = os.getenv("BRAINDB_API_BASE", "https://api-ltdbufxedq-de.a.run.app/api").rstrip("/")
+
+# qeegAbilities (database) → the seven metric names used by this report system
+ABILITY_TO_METRIC = {
+    "intuition":  "直覺能力",
+    "energy":     "氣血飽滿",
+    "relaxation": "內在安定",
+    "focus":      "高度專注",
+    "logic":      "邏輯分析",
+    "awareness":  "觀察環境",
+    "empathy":    "慈悲柔軟",
+}
+
+
+def _braindb_conf():
+    return (os.getenv("BRAINDB_SERVICE_KEY", "").strip(),
+            os.getenv("BRAINDB_IMPORT_PASSWORD", "").strip())
+
+
+def _db_guard():
+    """Return an error response if the DB feature is unconfigured or the password is wrong."""
+    key, pw = _braindb_conf()
+    if not key or not pw:
+        return jsonify({"error": "not_configured",
+                        "message": "伺服器尚未設定資料庫連線（BRAINDB_SERVICE_KEY / BRAINDB_IMPORT_PASSWORD）。"}), 503
+    supplied = request.headers.get("X-Import-Pass", "")
+    if not hmac.compare_digest(supplied.encode("utf-8"), pw.encode("utf-8")):
+        return jsonify({"error": "bad_password", "message": "資料庫匯入密碼不正確。"}), 401
+    return None
+
+
+def _braindb_get(path: str, params: dict | None = None, timeout: int = 25):
+    key, _ = _braindb_conf()
+    url = BRAINDB_BASE + path
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={"X-Service-Key": key, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _braindb_error(e: Exception):
+    """Translate a failed database call into a friendly JSON error response."""
+    if isinstance(e, urllib.error.HTTPError):
+        print(f"[BRAINDB HTTP {e.code}] {e.url}", flush=True)
+        if e.code in (401, 403):
+            return jsonify({"error": "db_auth", "message": "資料庫金鑰無效，或沒有 admin 權限（需要 admin APP Key 才能跨人查詢）。"}), 502
+        if e.code == 404:
+            return jsonify({"error": "db_not_found", "message": "資料庫中找不到這筆資料。"}), 404
+        return jsonify({"error": "db_http", "message": f"資料庫回應錯誤（HTTP {e.code}）。"}), 502
+    print(f"[BRAINDB ERROR] {type(e).__name__}: {e}", flush=True)
+    return jsonify({"error": "db_unreachable", "message": "無法連線到資料庫，請稍後再試。"}), 502
+
+
+def _age_at(birth, when) -> int | None:
+    """Whole-year age on the date `when` (ISO string or datetime) given an ISO birth date."""
+    try:
+        b = datetime.fromisoformat(str(birth)[:10]).date()
+        w = datetime.fromisoformat(str(when)[:10]).date() if when else date.today()
+    except (TypeError, ValueError):
+        return None
+    years = w.year - b.year - ((w.month, w.day) < (b.month, b.day))
+    return years if 0 <= years <= 120 else None
+
+
+def _num(v):
+    """Coerce a database number to an int 0-100, or None when absent/invalid."""
+    try:
+        if v is None:
+            return None
+        return max(0, min(100, int(round(float(v)))))
+    except (TypeError, ValueError):
+        return None
+
+
+@app.route("/db/status")
+def db_status():
+    key, pw = _braindb_conf()
+    return jsonify({"configured": bool(key and pw)})
+
+
+@app.route("/db/search")
+def db_search():
+    blocked = _db_guard()
+    if blocked:
+        return blocked
+    name = (request.args.get("name") or "").strip()
+    if len(name) < 1:
+        return jsonify({"subjects": []})
+    try:
+        raw = _braindb_get("/subjects/search", {"name": name, "limit": 20})
+    except Exception as e:  # noqa: BLE001
+        return _braindb_error(e)
+    subjects = []
+    for s in raw.get("subjects", []):
+        sid = s.get("subjectId") or s.get("id")
+        if not sid:
+            continue
+        # Only what the picker needs — never forward email / phone to the browser
+        subjects.append({
+            "subjectId": sid,
+            "name": s.get("name") or "",
+            "birthDate": (str(s.get("birthDate"))[:10] if s.get("birthDate") else None),
+            "age": s.get("age"),
+            "gender": s.get("gender"),
+        })
+    return jsonify({"subjects": subjects})
+
+
+@app.route("/db/sessions")
+def db_sessions():
+    blocked = _db_guard()
+    if blocked:
+        return blocked
+    subject_id = (request.args.get("subjectId") or "").strip()
+    if not subject_id:
+        return jsonify({"error": "validation", "message": "缺少 subjectId"}), 400
+    try:
+        raw = _braindb_get("/sessions", {"subjectId": subject_id, "limit": 20, "status": "completed"})
+    except Exception as e:  # noqa: BLE001
+        return _braindb_error(e)
+    sessions = []
+    for s in raw.get("sessions", []):
+        sessions.append({
+            "sessionId": s.get("sessionId") or s.get("id"),
+            "startedAt": s.get("startedAt"),
+            "analysisStatus": s.get("analysisStatus"),
+            "ready": s.get("analysisStatus") == "completed" and bool(s.get("qeegAbilities")),
+            "totalFeatures": s.get("totalFeatures"),
+        })
+    return jsonify({"sessions": sessions})
+
+
+@app.route("/db/import", methods=["POST"])
+def db_import():
+    """Build the same `data` structure that /extract returns, from a database session."""
+    blocked = _db_guard()
+    if blocked:
+        return blocked
+    body = request.get_json(silent=True) or {}
+    subject_id = (body.get("subjectId") or "").strip()
+    session_id = (body.get("sessionId") or "").strip()
+    if not subject_id or not session_id:
+        return jsonify({"error": "validation", "message": "缺少 subjectId 或 sessionId"}), 400
+    try:
+        subject = _braindb_get(f"/subjects/{urllib.parse.quote(subject_id, safe='')}")
+        sess = _braindb_get(f"/sessions/{urllib.parse.quote(session_id, safe='')}")
+    except Exception as e:  # noqa: BLE001
+        return _braindb_error(e)
+
+    # Guard against a mismatched pair (the browser sends both ids)
+    if sess.get("subjectId") and sess.get("subjectId") != subject_id:
+        return jsonify({"error": "mismatch", "message": "這筆檢測不屬於所選的受測者。"}), 400
+    abilities = sess.get("qeegAbilities") or {}
+    if sess.get("analysisStatus") != "completed" or not abilities:
+        return jsonify({"error": "not_ready",
+                        "message": "這筆檢測尚未完成正式分析，數值還不能使用，請改選其他一筆或稍後再試。"}), 409
+
+    age = _age_at(subject.get("birthDate"), sess.get("startedAt"))
+    metrics = {zh: _num(abilities.get(en)) for en, zh in ABILITY_TO_METRIC.items()}
+
+    # 專注度 / 放鬆度: adults → QEEG focus / relaxation; minors → eSense attention / meditation
+    # (same rule AutomaticDetection uses, see AD_REPORT_INDICATORS_HANDOFF.md §二)
+    esense_focus, esense_relax = _num(sess.get("attention")), _num(sess.get("relaxation"))
+    if age is not None and age < 18:
+        focus = esense_focus if esense_focus is not None else metrics["高度專注"]
+        relax = esense_relax if esense_relax is not None else metrics["內在安定"]
+    else:
+        focus = metrics["高度專注"] if metrics["高度專注"] is not None else esense_focus
+        relax = metrics["內在安定"] if metrics["內在安定"] is not None else esense_relax
+
+    data = {
+        "age": age,
+        "concentration_pct": focus,
+        "relaxation_pct": relax,
+        "metrics": metrics,
+        "source": "database",
+    }
+    missing = [k for k, v in metrics.items() if not v]
+    if focus is None:
+        missing.insert(0, "專注度")
+    if relax is None:
+        missing.insert(1 if focus is None else 0, "放鬆度")
+
+    return jsonify({
+        "success": True,
+        "data": data,
+        "missing_metrics": missing,
+        "name": subject.get("name") or "",
+        "measured_at": sess.get("startedAt"),
+    })
 
 
 @app.route("/extract", methods=["POST"])

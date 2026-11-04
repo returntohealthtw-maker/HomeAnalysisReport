@@ -727,6 +727,61 @@ body{
 }
 .toast-close:hover { color: var(--text); }
 
+/* ── Database import ── */
+.db-import-btn{
+  width:100%;margin:-4px 0 12px;padding:7px 10px;
+  border:1px dashed var(--green-l);border-radius:var(--r-sm);
+  background:var(--green-xl);color:var(--green);
+  font-size:.8rem;font-weight:500;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;transition:background .15s;
+}
+.db-import-btn:hover{background:#c5dcc5}
+#db-modal{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(40,40,30,.5);align-items:center;justify-content:center;padding:16px;
+}
+#db-modal.visible{display:flex}
+.db-box{
+  background:#fff;border-radius:var(--radius);width:100%;max-width:520px;
+  max-height:88vh;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.db-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.05rem;
+}
+.db-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-3)}
+.db-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.db-row{display:flex;gap:8px}
+.db-input{
+  flex:1;border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:8px 12px;font-size:.88rem;background:var(--cream);
+  font-family:'Noto Sans TC',sans-serif;
+}
+.db-input:focus{outline:none;border-color:var(--green);background:#fff}
+.db-btn{
+  border:none;border-radius:var(--r-sm);padding:8px 16px;cursor:pointer;
+  background:var(--green);color:#fff;font-size:.85rem;font-weight:500;
+}
+.db-btn:disabled{opacity:.5;cursor:not-allowed}
+.db-label{font-size:.75rem;color:var(--text-3)}
+.db-list{display:flex;flex-direction:column;gap:6px}
+.db-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:#fff;cursor:pointer;font-size:.86rem;text-align:left;width:100%;
+  font-family:'Noto Sans TC',sans-serif;transition:border-color .15s,background .15s;
+}
+.db-item:hover:not(:disabled){border-color:var(--green);background:var(--green-xl)}
+.db-item:disabled{opacity:.55;cursor:not-allowed}
+.db-item small{color:var(--text-3)}
+.db-tag{font-size:.7rem;padding:2px 8px;border-radius:10px;background:var(--green-xl);color:var(--green);flex-shrink:0}
+.db-tag.wait{background:var(--gold-xl);color:var(--gold)}
+.db-msg{font-size:.82rem;color:var(--text-2);padding:6px 0}
+.db-msg.err{color:#B03A2E}
+.db-back{background:none;border:none;color:var(--green);cursor:pointer;font-size:.8rem;text-align:left;padding:0}
+
 /* ── Responsive ── */
 @media(max-width:640px){
   .site-title{font-size:1.8rem}
@@ -1188,6 +1243,33 @@ body{
   </div>
 
 </main>
+
+<!-- ═══════════════════════════  DATABASE IMPORT MODAL  ═══════════════════════════ -->
+<div id="db-modal" onclick="if(event.target===this)closeDbModal()">
+  <div class="db-box">
+    <div class="db-head">
+      <span id="db-title">🗄️ 從資料庫匯入</span>
+      <button class="db-close" onclick="closeDbModal()">✕</button>
+    </div>
+    <div class="db-body">
+      <div id="db-pass-wrap">
+        <div class="db-label">資料庫匯入密碼（本次瀏覽只需輸入一次）</div>
+        <input type="password" class="db-input" id="db-pass" placeholder="請輸入密碼" style="width:100%;margin-top:4px"
+               onkeydown="if(event.key==='Enter')dbSearch()">
+      </div>
+      <div>
+        <div class="db-label">受測者姓名</div>
+        <div class="db-row" style="margin-top:4px">
+          <input type="text" class="db-input" id="db-name" placeholder="輸入姓名（可輸入部分）"
+                 onkeydown="if(event.key==='Enter')dbSearch()">
+          <button class="db-btn" id="db-search-btn" onclick="dbSearch()">搜尋</button>
+        </div>
+      </div>
+      <div id="db-msg" class="db-msg"></div>
+      <div id="db-list" class="db-list"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════  TOAST CONTAINER  ═══════════════════════════ -->
 <div id="toast-container"></div>
@@ -1732,6 +1814,171 @@ const ZH_NUMS = ['一','二','三','四','五','六','七','八','九','十','�
 function chNumToZh(n) {
   if (typeof n === 'number' && n >= 1 && n <= 13) return ZH_NUMS[n-1];
   return String(n);
+}
+
+// ─── Database import (alternative to image recognition) ──────────────────────
+let dbTargetRole = null;
+let dbPicked = null;   // { subjectId, name } once a subject is chosen
+
+const DB_PLACEHOLDER_IMG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#EAF2EA"/>' +
+  '<text x="160" y="84" font-size="34" text-anchor="middle">🗄️</text>' +
+  '<text x="160" y="124" font-size="18" text-anchor="middle" fill="#5B7B5B" font-family="sans-serif">資料庫匯入</text></svg>');
+
+// Add an "import from database" button under every name box
+window.addEventListener('DOMContentLoaded', () => {
+  Object.keys(ROLES).forEach(role => {
+    const nameBox = document.getElementById('name-' + role);
+    if (!nameBox) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'db-import-btn';
+    btn.textContent = '🗄️ 從資料庫匯入數據';
+    btn.onclick = () => openDbModal(role);
+    nameBox.insertAdjacentElement('afterend', btn);
+  });
+});
+
+function dbHeaders() {
+  return { 'X-Import-Pass': document.getElementById('db-pass').value || sessionStorage.getItem('dbPass') || '' };
+}
+function dbSetMsg(text, isErr) {
+  const m = document.getElementById('db-msg');
+  m.textContent = text || '';
+  m.className = 'db-msg' + (isErr ? ' err' : '');
+}
+function openDbModal(role) {
+  dbTargetRole = role;
+  dbPicked = null;
+  document.getElementById('db-title').textContent = `🗄️ 從資料庫匯入：${ROLES[role].zh}`;
+  const saved = sessionStorage.getItem('dbPass');
+  document.getElementById('db-pass').value = saved || '';
+  document.getElementById('db-pass-wrap').style.display = saved ? 'none' : 'block';
+  document.getElementById('db-name').value = (document.getElementById('name-' + role).value || '').trim();
+  document.getElementById('db-list').innerHTML = '';
+  dbSetMsg('輸入姓名後按「搜尋」。');
+  document.getElementById('db-modal').classList.add('visible');
+  setTimeout(() => document.getElementById('db-name').focus(), 50);
+}
+function closeDbModal() {
+  document.getElementById('db-modal').classList.remove('visible');
+}
+
+// Shared fetch helper: handles auth errors / unconfigured server uniformly
+async function dbFetch(url, opts) {
+  const res = await fetch(url, Object.assign({ headers: dbHeaders() }, opts || {}));
+  const json = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    sessionStorage.removeItem('dbPass');
+    document.getElementById('db-pass-wrap').style.display = 'block';
+    throw new Error(json.message || '密碼不正確');
+  }
+  if (!res.ok) throw new Error(json.message || '資料庫請求失敗');
+  return json;
+}
+
+async function dbSearch() {
+  const name = document.getElementById('db-name').value.trim();
+  if (!name) { dbSetMsg('請先輸入姓名。', true); return; }
+  const btn = document.getElementById('db-search-btn');
+  btn.disabled = true; dbSetMsg('搜尋中…');
+  document.getElementById('db-list').innerHTML = '';
+  try {
+    const json = await dbFetch('/db/search?name=' + encodeURIComponent(name));
+    const pass = document.getElementById('db-pass').value;
+    if (pass) sessionStorage.setItem('dbPass', pass);
+    document.getElementById('db-pass-wrap').style.display = 'none';
+    const list = json.subjects || [];
+    if (!list.length) { dbSetMsg('找不到符合的受測者，請確認姓名。', true); return; }
+    dbSetMsg(`找到 ${list.length} 位，請選擇：`);
+    const box = document.getElementById('db-list');
+    list.forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'db-item';
+      const left = document.createElement('span');
+      left.textContent = s.name || '（無姓名）';
+      const small = document.createElement('small');
+      small.textContent = '　' + [s.birthDate, s.age != null ? s.age + '歲' : null].filter(Boolean).join('・');
+      left.appendChild(small);
+      b.appendChild(left);
+      b.onclick = () => dbPickSubject(s);
+      box.appendChild(b);
+    });
+  } catch (e) {
+    dbSetMsg(e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function dbPickSubject(s) {
+  dbPicked = s;
+  document.getElementById('db-list').innerHTML = '';
+  dbSetMsg(`讀取「${s.name}」的檢測紀錄中…`);
+  try {
+    const json = await dbFetch('/db/sessions?subjectId=' + encodeURIComponent(s.subjectId));
+    const list = json.sessions || [];
+    const box = document.getElementById('db-list');
+    const back = document.createElement('button');
+    back.type = 'button'; back.className = 'db-back'; back.textContent = '← 重新搜尋';
+    back.onclick = () => dbSearch();
+    box.appendChild(back);
+    if (!list.length) { dbSetMsg(`「${s.name}」目前沒有已完成的檢測紀錄。`, true); return; }
+    dbSetMsg(`「${s.name}」的檢測紀錄（最新在上），請選擇要匯入的一筆：`);
+    list.forEach(x => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'db-item'; b.disabled = !x.ready;
+      const left = document.createElement('span');
+      const when = x.startedAt ? new Date(x.startedAt).toLocaleString('zh-TW', { hour12: false }) : '（無時間）';
+      left.textContent = when;
+      if (x.totalFeatures) {
+        const small = document.createElement('small');
+        small.textContent = `　${x.totalFeatures} 筆`;
+        left.appendChild(small);
+      }
+      const tag = document.createElement('span');
+      tag.className = 'db-tag' + (x.ready ? '' : ' wait');
+      tag.textContent = x.ready ? '可匯入' : '分析未完成';
+      b.appendChild(left); b.appendChild(tag);
+      if (x.ready) b.onclick = () => dbImport(s, x.sessionId);
+      box.appendChild(b);
+    });
+  } catch (e) {
+    dbSetMsg(e.message, true);
+  }
+}
+
+async function dbImport(s, sessionId) {
+  const role = dbTargetRole;
+  dbSetMsg('匯入中…');
+  try {
+    const json = await dbFetch('/db/import', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, dbHeaders()),
+      body: JSON.stringify({ subjectId: s.subjectId, sessionId }),
+    });
+    // Make sure this member is switched on (child2~4 start unchecked)
+    const cb = document.getElementById('present-' + role);
+    if (cb && !cb.checked) { cb.checked = true; togglePresence(role, true); }
+
+    state[role].data = json.data;
+    renderDataPreview(role, json.data, DB_PLACEHOLDER_IMG);
+    updateCard(role, 'ready');
+
+    const nameBox = document.getElementById('name-' + role);
+    if (nameBox && !nameBox.value.trim() && json.name) nameBox.value = json.name;
+
+    closeDbModal();
+    const miss = json.missing_metrics || [];
+    if (miss.length) {
+      showToast('warning', `${ROLES[role].zh}：資料庫缺少 ${miss.length} 項`,
+        `「${miss.join('、')}」資料庫沒有數值，請在紅框欄位手動輸入。`, 12000);
+    } else {
+      showToast('success', '匯入成功', `${ROLES[role].zh} 的腦波數據已從資料庫匯入（${s.name}）。`);
+    }
+  } catch (e) {
+    dbSetMsg(e.message, true);
+  }
 }
 
 // ─── Chapter / Section selector ───────────────────────────────────────────────
