@@ -589,12 +589,16 @@ def format_family_data(members: list) -> str:
             age = d.get("age")
             age_str = f"（{age}歲）" if age is not None else ""
             lines.append(f"\n【{role_zh}】{name}{age_str}")
+            _c = d.get('concentration_pct')
+            _r = d.get('relaxation_pct')
+            if _c is None or _r is None:
+                lines.append("  （注意：專注度/放鬆度中有項目未取得數值，請勿引用該項具體數字）")
             lines.append(
-                f"  專注度：{d.get('concentration_pct', 'N/A')}%  "
+                f"  專注度：{'未取得' if _c is None else str(_c) + '%'}  "
                 f"（高:{d.get('concentration_high','?')}  中:{d.get('concentration_medium','?')}  低:{d.get('concentration_low','?')}）"
             )
             lines.append(
-                f"  放鬆度：{d.get('relaxation_pct', 'N/A')}%  "
+                f"  放鬆度：{'未取得' if _r is None else str(_r) + '%'}  "
                 f"（高:{d.get('relaxation_high','?')}  中:{d.get('relaxation_medium','?')}  低:{d.get('relaxation_low','?')}）"
             )
             lines.append("  腦波能力七項指標：")
@@ -1232,6 +1236,19 @@ def extract():
             clean_metrics[k] = v
         result["metrics"] = clean_metrics
 
+        # Same treatment for the two headline numbers (專注度 / 放鬆度)
+        for fld, label in (("concentration_pct", "專注度"), ("relaxation_pct", "放鬆度")):
+            v = result.get(fld)
+            try:
+                v = int(v) if v is not None else None
+            except (TypeError, ValueError):
+                v = None
+            result[fld] = v
+            if v is None:
+                missing_metrics.insert(0, label)
+
+        # Log the FULL model answer so unread values can be diagnosed from server logs
+        print(f"[EXTRACT FULL] {str(raw_text)[:2000]}", flush=True)
         print(f"[EXTRACT OK] keys={list(result.keys())} missing={missing_metrics}", flush=True)
         return jsonify({"success": True, "data": result, "missing_metrics": missing_metrics})
 

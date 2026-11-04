@@ -1454,13 +1454,15 @@ function renderDataPreview(role, data, imgUrl) {
   const sibStats    = document.getElementById('sib-stats-' + role);
 
   successImg.src = imgUrl;
-  const conc = data.concentration_pct || 0;
-  const relx = data.relaxation_pct    || 0;
+  // null = the model could not read it; keep it empty (not a fake 0) so the user fills it in
+  const conc = (data.concentration_pct != null) ? data.concentration_pct : null;
+  const relx = (data.relaxation_pct    != null) ? data.relaxation_pct    : null;
+  const fmtPct = v => (v == null ? '?' : v + '%');
   const age  = (data.age != null) ? data.age : null;
   const ageLabel = age != null
     ? (age <= 12 ? `${age}歲・兒童` : age <= 17 ? `${age}歲・青少年` : `${age}歲・成人`)
     : '';
-  sibStats.textContent = `專注 ${conc}%・放鬆 ${relx}%` + (ageLabel ? `・${ageLabel}` : '');
+  sibStats.textContent = `專注 ${fmtPct(conc)}・放鬆 ${fmtPct(relx)}` + (ageLabel ? `・${ageLabel}` : '');
 
   // Hide upload zone, show success zone
   document.getElementById('zone-' + role).style.display = 'none';
@@ -1507,15 +1509,19 @@ function renderDataPreview(role, data, imgUrl) {
       </span>
     </div>
     <div class="data-row">
-      <span class="data-key">專注度</span>
+      <span class="data-key" id="lbl-concentration_pct-${role}" style="${conc == null ? 'color:#C0392B;font-weight:600' : ''}">專注度</span>
       <span class="data-val">
-        <input type="number" min="0" max="100" value="${conc}" onchange="updateField('${role}','concentration_pct',this.value)">%
+        <input type="number" min="0" max="100" value="${conc == null ? '' : conc}" placeholder="?"
+          style="${conc == null ? 'border-color:#E57373;background:#FFF3F3' : ''}"
+          oninput="updateHeadline('${role}','concentration_pct',this)">%
       </span>
     </div>
     <div class="data-row">
-      <span class="data-key">放鬆度</span>
+      <span class="data-key" id="lbl-relaxation_pct-${role}" style="${relx == null ? 'color:#C0392B;font-weight:600' : ''}">放鬆度</span>
       <span class="data-val">
-        <input type="number" min="0" max="100" value="${relx}" onchange="updateField('${role}','relaxation_pct',this.value)">%
+        <input type="number" min="0" max="100" value="${relx == null ? '' : relx}" placeholder="?"
+          style="${relx == null ? 'border-color:#E57373;background:#FFF3F3' : ''}"
+          oninput="updateHeadline('${role}','relaxation_pct',this)">%
       </span>
     </div>
     <div class="metrics-section">
@@ -1531,6 +1537,23 @@ function updateField(role, field, value) {
   if (state[role].data) {
     state[role].data[field] = parseInt(value) || 0;
   }
+}
+
+// Manually edit 專注度 / 放鬆度 (blank stays null; red highlight clears once filled)
+function updateHeadline(role, field, inputEl) {
+  if (!state[role].data) return;
+  let v = inputEl.value === '' ? null : parseInt(inputEl.value);
+  if (v != null && isNaN(v)) v = null;
+  if (v != null) v = Math.max(0, Math.min(100, v));
+  state[role].data[field] = v;
+  inputEl.style.borderColor = v == null ? '#E57373' : '';
+  inputEl.style.background  = v == null ? '#FFF3F3' : '';
+  const lbl = document.getElementById(`lbl-${field}-${role}`);
+  if (lbl) { lbl.style.color = v == null ? '#C0392B' : ''; lbl.style.fontWeight = v == null ? '600' : ''; }
+  const d = state[role].data;
+  const f = x => (x == null ? '?' : x + '%');
+  const sib = document.getElementById('sib-stats-' + role);
+  if (sib) sib.textContent = sib.textContent.replace(/專注 [^・]*・放鬆 [^・]*/, `專注 ${f(d.concentration_pct)}・放鬆 ${f(d.relaxation_pct)}`);
 }
 
 // Manually edit one of the seven brainwave ability metrics
